@@ -18,6 +18,7 @@ class BullBot:
         self.thread = thread
         self.proxy = f"http://{proxy}" if proxy is not None else None
         self.user_agent_file = "./sessions/user_agents.json"
+        self.statistics_file = "./statistics/stats.json"
         self.ref_link_file = "./sessions/ref_links.json"
 
         if proxy:
@@ -109,6 +110,37 @@ class BullBot:
             json.dump(user_agents, f, indent=4)
 
 
+    async def get_stats(self, resp_json):
+        stats = await self.load_stats()
+        balance = resp_json["arguments"][0]["o"]["balance"]
+        boost1 = resp_json["arguments"][0]["o"]["boost1"]
+        boost2 = resp_json["arguments"][0]["o"]["boost2"]
+        friends = resp_json["arguments"][0]["o"]["friends"]
+        completed = resp_json["arguments"][0]["o"]["completed"]
+        stats[self.account] = {
+            "balance": balance,
+            "boost1": boost1,
+            "boost2": boost2,
+            "friends": friends,
+            "completed": completed
+        }
+        await self.save_stats(stats)
+        
+
+    async def load_stats(self):
+        if os.path.exists(self.statistics_file):
+            with open(self.statistics_file, "r") as f:
+                return json.load(f)
+        else:
+            return {}
+
+
+    async def save_stats(self, stats):
+        os.makedirs(os.path.dirname(self.statistics_file), exist_ok=True)
+        with open(self.statistics_file, "w") as f:
+            json.dump(stats, f, indent=4)
+
+
     async def negotiate_request(self):
         negotiate_url = 'https://bullapp.online/hub/negotiate?negotiateVersion=1'
         headers = {
@@ -140,7 +172,7 @@ class BullBot:
         for mission in resp_json["arguments"][0]["o"]["missions"]:
             if mission["id"] not in completed_tasks:
                 print("mission id", mission["id"])
-                if mission["id"] in [21, 22, 184]:
+                if mission["id"] in [21, 22, 184, 187]:
                     await self.client.connect()
                     try:
                         await self.client.join_chat("HoldBull")
@@ -177,6 +209,8 @@ class BullBot:
         next_boost1 = resp_json["arguments"][0]["o"]["boost1_next"]
         next_boost2 = resp_json["arguments"][0]["o"]["boost2_next"]
         balance = resp_json["arguments"][0]["o"]["balance"]
+        boost1_upgraded = 0
+        boost2_upgraded = 0
         if balance > next_boost2["coins"]:
             boost2_message = {
                 "arguments":[
@@ -189,6 +223,7 @@ class BullBot:
             await ws.send_str(json.dumps(boost2_message) + '\x1e')
             balance = balance - next_boost2["coins"]
             logger.success(f"Thread {self.thread} | {self.account} | Boost2 upgraded!, Balance: {balance}")
+            boost2_upgraded += 1
             await asyncio.sleep(uniform(5, 8))
 
         if balance > next_boost1["coins"]:
@@ -203,7 +238,10 @@ class BullBot:
             await ws.send_str(json.dumps(boost1_message) + '\x1e')
             balance = balance - next_boost1["coins"]
             logger.success(f"Thread {self.thread} | {self.account} | Boost1 upgraded!, Balance: {balance}")
+            boost1_upgraded += 1 
             await asyncio.sleep(uniform(5, 8))
+        
+        return balance, boost1_upgraded, boost2_upgraded
 
 
     async def login(self):
@@ -270,8 +308,13 @@ class BullBot:
                     await asyncio.sleep(uniform(5,8))
 
                     # Улучшаем бусты, если можно
-                    await self.upgrade_boosts(ws, resp_json)
-                    
+                    balance, boost1_upgraded, boost2_upgraded = await self.upgrade_boosts(ws, resp_json)
+                    resp_json["arguments"][0]["o"]["balance"] = balance
+                    resp_json["arguments"][0]["o"]["boost1"] += boost1_upgraded
+                    resp_json["arguments"][0]["o"]["boost2"] += boost2_upgraded
+                    # Записываем статистику
+                    await self.get_stats(resp_json)
+
                     # Пинг
                     await ws.send_str(json.dumps({"type": 6}) + '\x1e')
                     await asyncio.sleep(uniform(3,5))
@@ -283,12 +326,12 @@ class BullBot:
                     if claim_remain == 0:
                         claim_message = {"arguments":[self.my_id],"invocationId":"1","target":"Claim","type":1}
                         await ws.send_str(json.dumps(claim_message) + '\x1e')
-                        response = await ws.receive()
-                        resp_json = json.loads(response.data[:-1])
-                        print("resp_json = ", resp_json)
-                        time_to_sleep = resp_json["arguments"][0]["o"]["claimseconds"]
                     else:
                         time_to_sleep = claim_remain
+                        logger.info(f"Thread {self.thread} | {self.account} | Sleep {time_to_sleep} seconds!")
+                        await asyncio.sleep(time_to_sleep)
+                        
+                
                     
                 else:
                     print("Unexpected response:", data)
