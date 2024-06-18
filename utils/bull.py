@@ -339,8 +339,8 @@ class BullBot:
                 print("Failed to establish WebSocket connection:", response)
 
             
-            logger.info(f"Thread {self.thread} | {self.account} | Sleep {time_to_sleep} seconds!")
-            await asyncio.sleep(time_to_sleep)
+            # logger.info(f"Thread {self.thread} | {self.account} | Sleep {time_to_sleep} seconds!")
+            # await asyncio.sleep(time_to_sleep)
 
 
     async def click_start_button(self):
