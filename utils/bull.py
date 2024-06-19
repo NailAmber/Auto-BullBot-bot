@@ -10,13 +10,14 @@ from data import config
 import json
 import os
 import time
+from aiohttp_socks import ProxyConnector
 
 
 class BullBot:
     def __init__(self, thread: int, session_name: str, phone_number: str, proxy: [str, None]):
         self.account = session_name + '.session'
         self.thread = thread
-        self.proxy = f"http://{proxy}" if proxy is not None else None
+        self.proxy = f"{config.PROXY_TYPES['REQUESTS']}://{proxy}" if proxy is not None else None
         self.user_agent_file = "./sessions/user_agents.json"
         self.statistics_file = "./statistics/stats.json"
         self.ref_link_file = "./sessions/ref_links.json"
@@ -47,19 +48,19 @@ class BullBot:
         )
 
 
-    async def init_async(self):
+    async def init_async(self, proxy):
         self.refferal_link = await self.get_ref_link()
         user_agent = await self.get_user_agent()
         headers = {'User-Agent': user_agent}
-        self.session = aiohttp.ClientSession(headers=headers, trust_env=True, connector=aiohttp.TCPConnector(verify_ssl=False),
-                                             timeout=aiohttp.ClientTimeout(120))
+        connector = ProxyConnector.from_url(self.proxy) if proxy else aiohttp.TCPConnector(verify_ssl=False)
+        self.session = aiohttp.ClientSession(headers=headers, trust_env=True, connector=connector, timeout=aiohttp.ClientTimeout(120))
         self.initialized = True
 
 
     @classmethod
     async def create(cls, thread: int, session_name: str, phone_number: str, proxy: [str, None]):
         instance = cls(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)
-        await instance.init_async()
+        await instance.init_async(proxy)
         return instance
 
 
@@ -117,7 +118,7 @@ class BullBot:
         boost2 = resp_json["arguments"][0]["o"]["boost2"]
         friends = resp_json["arguments"][0]["o"]["friends"]
         completed = resp_json["arguments"][0]["o"]["completed"]
-        stats[self.account] = {
+        stats[self.account]["Bull"] = {
             "balance": balance,
             "boost1": boost1,
             "boost2": boost2,
@@ -222,7 +223,7 @@ class BullBot:
             }
             await ws.send_str(json.dumps(boost2_message) + '\x1e')
             balance = balance - next_boost2["coins"]
-            logger.success(f"Thread {self.thread} | {self.account} | Boost2 upgraded!, Balance: {balance}")
+            logger.success(f"Bull| Thread {self.thread} | {self.account} | Boost2 upgraded!, Balance: {balance}")
             boost2_upgraded += 1
             await asyncio.sleep(uniform(5, 8))
 
@@ -237,7 +238,7 @@ class BullBot:
             }
             await ws.send_str(json.dumps(boost1_message) + '\x1e')
             balance = balance - next_boost1["coins"]
-            logger.success(f"Thread {self.thread} | {self.account} | Boost1 upgraded!, Balance: {balance}")
+            logger.success(f"Bull | Thread {self.thread} | {self.account} | Boost1 upgraded!, Balance: {balance}")
             boost1_upgraded += 1 
             await asyncio.sleep(uniform(5, 8))
         
@@ -326,9 +327,10 @@ class BullBot:
                     if claim_remain == 0:
                         claim_message = {"arguments":[self.my_id],"invocationId":"1","target":"Claim","type":1}
                         await ws.send_str(json.dumps(claim_message) + '\x1e')
+                        logger.success(f"Bull | Thread {self.thread} | {self.account} | Claimed!")
                     else:
                         time_to_sleep = claim_remain
-                        logger.info(f"Thread {self.thread} | {self.account} | Sleep {time_to_sleep} seconds!")
+                        logger.info(f"Bull | Thread {self.thread} | {self.account} | Sleep {time_to_sleep} seconds!")
                         await asyncio.sleep(time_to_sleep)
                         
                 
@@ -339,7 +341,7 @@ class BullBot:
                 print("Failed to establish WebSocket connection:", response)
 
             
-            # logger.info(f"Thread {self.thread} | {self.account} | Sleep {time_to_sleep} seconds!")
+            # logger.info(f"Bull | Thread {self.thread} | {self.account} | Sleep {time_to_sleep} seconds!")
             # await asyncio.sleep(time_to_sleep)
 
 
@@ -364,18 +366,18 @@ class BullBot:
                                 button = third_row_buttons[0]  # Берем первую кнопку третьего ряда
                                 if button.url:  # Убедимся, что у кнопки есть url
                                     response = await self.session.get(button.url)
-                                    logger.info(f"Thread {self.thread} | {self.account} | Button pressed, status: {response.status}")
+                                    logger.info(f"Bull | Thread {self.thread} | {self.account} | Button pressed, status: {response.status}")
                                     clicked = True
                                     await self.client.disconnect()
                                     return clicked
                 else:
                     # Если кнопка не найдена, то берем рефаральную ссылку и по ней запускаем бота, потом нажимаем на кнопку
                     print("Button not found")
-                    logger.info(f"Thread {self.thread} | {self.account} | Button not found, start with refferal link")
+                    logger.info(f"Bull | Thread {self.thread} | {self.account} | Button not found, start with refferal link")
                     with open(self.ref_link_file, 'r') as file:
                         ref_links = json.load(file)
                         session_name, referral_link = random.choice(list(ref_links.items()))
-                        logger.info(f"Thread {self.thread} | {self.account} | Selected session: {session_name}, Referral link: {referral_link}")
+                        logger.info(f"Bull | Thread {self.thread} | {self.account} | Selected session: {session_name}, Referral link: {referral_link}")
                         bot_username = referral_link.split("?start=")[0].split("/")[-1]
                         start_param = referral_link.split("?start=")[-1]
                         
@@ -387,7 +389,7 @@ class BullBot:
                                 start_param=start_param
                             )
                         )
-                        logger.info(f"Thread {self.thread} | {self.account} | Bot started: {result}")
+                        logger.info(f"Bull | Thread {self.thread} | {self.account} | Bot started: {result}")
                         clicked = False
             except Exception as e:
                 clicked = False

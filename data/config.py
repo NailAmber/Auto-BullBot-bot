@@ -6,7 +6,10 @@ DELAYS = {
 }
 
 # proxy type for tg client
-PROXY_TYPE = "socks5"  # "socks4", "socks5" and "http" are supported
+PROXY_TYPES = {
+    "TG": "socks5",  # proxy type for tg client. "socks4", "socks5" and "http" are supported
+    "REQUESTS": "socks5"  # proxy type for requests. "http" for https and http proxys, "socks5" for socks5 proxy.
+}
 
 # session folder (do not change)
 WORKDIR = "sessions/"

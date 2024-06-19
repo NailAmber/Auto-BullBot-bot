@@ -1,4 +1,5 @@
 from utils.bull import BullBot
+from utils.altooshka import AltooshkaBot
 from asyncio import sleep
 from random import uniform
 from data import config
@@ -23,8 +24,27 @@ async def start(thread: int, session_name: str, phone_number: str, proxy: [str, 
             await sleep(30)
 
         except ContentTypeError as e:
-            logger.error(f"Thread {thread} | {account} | Error: {e}")
+            logger.error(f"Bull | Thread {thread} | {account} | Error: {e}")
             await asyncio.sleep(120)
 
         except Exception as e:
-            logger.error(f"Thread {thread} | {account} | Error: {e}")
+            logger.error(f"Bull | Thread {thread} | {account} | Error: {e}")
+
+async def altooshkaStart(thread: int, session_name: str, phone_number: str, proxy: [str, None]):
+    altooshka = await AltooshkaBot.create(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)
+    account = session_name + '.session'
+
+    await sleep(uniform(*config.DELAYS['ACCOUNT']))
+
+    while True:
+        try:
+            await altooshka.login()
+
+            await sleep(30)
+
+        except ContentTypeError as e:
+            logger.error(f"Altooshka | Thread {thread} | {account} | Error: {e}")
+            await asyncio.sleep(120)
+
+        except Exception as e:
+            logger.error(f"Altooshka | Thread {thread} | {account} | Error: {e}")
