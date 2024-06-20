@@ -130,7 +130,7 @@ class AltooshkaBot:
         # query = await self.get_tg_web_data()
         resp = await self.session.get("https://api.altooshka.io/user/", params=query)
         resp_json = await resp.json()
-
+        logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Balance: {resp_json["data"]["user"]["gems"]}")
         stats = await self.load_stats()
         
         balance = resp_json["data"]["user"]["gems"]
@@ -195,7 +195,7 @@ class AltooshkaBot:
             query = await self.check_relogin(query)
             if sleep_time < time.time():
                 json_data = {"girl_id":1,"action_id":1}
-                resp = await self.session.post("https://api.altooshka.io/girls/action", params=query, json=json_data, proxy=self.proxy)
+                resp = await self.session.post("https://api.altooshka.io/girls/action", params=query, json=json_data)
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 1 performed")
                 sleep_time = resp_json["data"]["availableAt"] - time.time()
