@@ -426,11 +426,19 @@ class AltooshkaBot:
                     logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Button not found, start with refferal link")
                     with open(self.ref_link_file, 'r') as file:
                                 ref_links = json.load(file)
-                                session_name = {}
-                                while "Altooshka" not in ref_links[session_name]:
+                                if ref_links != {}:
                                     session_name = random.choice(list(ref_links.keys()))
-                                referral_link = ref_links[session_name]["Altooshka"]
-                                logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Selected session: {session_name}, Referral link: {referral_link}")
+                                    atemp = 0
+                                    while "Altooshka" not in ref_links[session_name] and atemp < 5:
+                                        session_name = random.choice(list(ref_links.keys()))
+                                        atemp += 1
+                                    if atemp == 5:
+                                        referral_link = ""
+                                    else:
+                                        referral_link = ref_links[session_name]["Altooshka"]
+                                        logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Selected session: {session_name}, Referral link: {referral_link}")
+                                else:
+                                    referral_link = ""
                                 bot_username = "altooshka_bot"
                                 start_param = referral_link
                                 result = await self.client.invoke(

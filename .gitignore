@@ -33,7 +33,6 @@ MANIFEST
 *.spec
 
 data/
-session/
 statistics/
 
 # Installer logs

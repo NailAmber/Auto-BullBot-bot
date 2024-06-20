@@ -378,15 +378,20 @@ class BullBot:
                     with open(self.ref_link_file, 'r') as file:
                         ref_links = json.load(file)
                         session_name = random.choice(list(ref_links.keys()))
-                        while "Bull" not in ref_links[session_name]:
-                            print(session_name)
+                        atemp = 0
+                        while "Bull" not in ref_links[session_name] and atemp < 5:
                             session_name = random.choice(list(ref_links.keys()))
-                        # print(ref_links[session_name])
-                        referral_link = ref_links[session_name]["Bull"]
-                        
-                        logger.info(f"Bull | Thread {self.thread} | {self.account} | Selected session: {session_name}, Referral link: {referral_link}")
-                        bot_username = referral_link.split("?start=")[0].split("/")[-1]
-                        start_param = referral_link.split("?start=")[-1]
+                            atemp += 1
+                        if atemp == 5:
+                            start_param = ""
+                            bot_username = "BullApp_bot"
+                        else:
+                            # print(ref_links[session_name])
+                            referral_link = ref_links[session_name]["Bull"]
+                            
+                            logger.info(f"Bull | Thread {self.thread} | {self.account} | Selected session: {session_name}, Referral link: {referral_link}")
+                            bot_username = referral_link.split("?start=")[0].split("/")[-1]
+                            start_param = referral_link.split("?start=")[-1]
                         
                         result = await self.client.invoke(
                             raw.functions.messages.StartBot(

@@ -4,16 +4,19 @@ from utils.starter import start, altooshkaStart
 import asyncio
 import os
 import json
-
+from utils.proceed_raw_api import proceed_data
 
 async def main():
-    action = int(input("Select action:\n1. Start soft\n2. Print stats\n3. Create sessions\n\n> "))
+    action = int(input("Select action:\n1. Start soft\n2. Print stats\n3. Create sessions\n4. Proceed raw data api configs\n> "))
 
     if not os.path.exists('sessions'): os.mkdir('sessions')
     if not os.path.exists('statistics'): os.mkdir('statistics')
     if not os.path.exists('sessions/accounts.json'):
         with open("sessions/accounts.json", 'w') as f:
             f.write("[]")
+
+    if action == 4:
+        await proceed_data()
 
     if action == 3:
         await create_sessions()
