@@ -2,13 +2,15 @@ import asyncio
 import os
 from data import config
 from pyrogram import Client
-from utils.core import logger, load_from_json
+from utils.core import logger, load_from_json, save_list_to_file
 import json
-
 
 class Accounts:
     def __init__(self):
+        
         self.workdir = config.WORKDIR
+        # self.api_id = config.API_ID
+        # self.api_hash = config.API_HASH
 
     @staticmethod
     def get_available_accounts(sessions: list):
@@ -37,24 +39,21 @@ class Accounts:
 
     async def check_valid_account(self, account: dict):
         session_name, phone_number, proxy = account.values()
-
         with open("./data/api_config.json", "r") as f:
             apis = json.load(f)
-            phone_number = apis[phone_number]
-            api_id = phone_number[0]
-            api_hash = phone_number[1]
-
-
+            phone_number_json = apis[phone_number]
+            self.api_id = phone_number_json[0]
+            self.api_hash = phone_number_json[1]
         try:
             proxy_dict = {
-                "scheme": config.PROXY_TYPE,
+                "scheme": config.PROXY_TYPES['TG'],
                 "hostname": proxy.split(":")[1].split("@")[1],
                 "port": int(proxy.split(":")[2]),
                 "username": proxy.split(":")[0],
                 "password": proxy.split(":")[1].split("@")[0]
             } if proxy else None
 
-            client = Client(name=session_name, api_id=api_id, api_hash=api_hash, workdir=self.workdir,
+            client = Client(name=session_name, api_id=self.api_id, api_hash=self.api_hash, workdir=self.workdir,
                             proxy=proxy_dict)
 
             connect = await asyncio.wait_for(client.connect(), timeout=config.TIMEOUT)
@@ -75,10 +74,12 @@ class Accounts:
             tasks.append(asyncio.create_task(self.check_valid_account(account)))
 
         v_accounts = await asyncio.gather(*tasks)
-        valid_accounts = [valid_accounts for valid_accounts in v_accounts if valid_accounts is not None]
 
-        logger.success(f"Valid accounts: {len(valid_accounts)}; Invalid: {len(accounts)-len(valid_accounts)}")
-        return valid_accounts
+        valid_accounts = [account for account, is_valid in zip(accounts, v_accounts) if is_valid]
+        invalid_accounts = [account for account, is_valid in zip(accounts, v_accounts) if not is_valid]
+        logger.success(f"Valid accounts: {len(valid_accounts)}; Invalid: {len(invalid_accounts)}")
+
+        return valid_accounts, invalid_accounts
 
     async def get_accounts(self):
         sessions = self.pars_sessions()
@@ -89,7 +90,11 @@ class Accounts:
         else:
             logger.success(f"Search available accounts: {len(available_accounts)}.")
 
-        valid_accounts = await self.check_valid_accounts(available_accounts)
+        valid_accounts, invalid_accounts = await self.check_valid_accounts(available_accounts)
+
+        if invalid_accounts:
+            save_list_to_file(f"{config.WORKDIR}invalid_accounts.txt", invalid_accounts)
+            logger.info(f"Saved {len(invalid_accounts)} invalid account(s) in {config.WORKDIR}invalid_accounts.txt")
 
         if not valid_accounts:
             raise ValueError("Have not valid sessions")
