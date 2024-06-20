@@ -2,7 +2,7 @@ import pyrogram
 from loguru import logger
 from data import config
 from utils.core.file_manager import save_to_json
-
+import json
 
 async def create_sessions():
     while True:
@@ -24,9 +24,15 @@ async def create_sessions():
         phone_number = (input("Input the phone number of the account: ")).replace(' ', '')
         phone_number = '+' + phone_number if not phone_number.startswith('+') else phone_number
 
+        with open("./data/api_config.json", "r") as f:
+            apis = json.load(f)
+            phone_number_json = apis[phone_number]
+            api_id = phone_number_json[0]
+            api_hash = phone_number_json[1]
+
         client = pyrogram.Client(
-            api_id=config.API_ID,
-            api_hash=config.API_HASH,
+            api_id=api_id,
+            api_hash=api_hash,
             name=session_name,
             workdir=config.WORKDIR,
             phone_number=phone_number,
