@@ -67,7 +67,8 @@ class BullBot:
     async def get_ref_link(self):
         ref_links = await self.load_ref_links()
         if self.account in ref_links:
-            return ref_links[self.account]
+            if "Bull" in ref_links[self.account]:
+                return ref_links[self.account]["Bull"]
         else:
             return None
 
@@ -84,6 +85,14 @@ class BullBot:
         os.makedirs(os.path.dirname(self.ref_link_file), exist_ok=True)
         with open(self.ref_link_file, "w") as f:
             json.dump(ref_links, f, indent=4)
+
+
+    async def referrals_check(self, resp_json):
+            if self.refferal_link is None:
+                ref_links = await self.load_ref_links()
+                bull_ref = ref_links[self.account] 
+                bull_ref["Bull"] = resp_json["arguments"][0]["o"]["link"]
+                await self.save_ref_links(ref_links)
 
 
     async def get_user_agent(self):
@@ -172,7 +181,7 @@ class BullBot:
         completed_tasks = resp_json["arguments"][0]["o"]["completed"]
         for mission in resp_json["arguments"][0]["o"]["missions"]:
             if mission["id"] not in completed_tasks:
-                print("mission id", mission["id"])
+                logger.success(f"Bull| Thread {self.thread} | {self.account} | Task id: {mission["id"]}")
                 if mission["id"] in [21, 22, 184, 187]:
                     await self.client.connect()
                     try:
@@ -197,13 +206,6 @@ class BullBot:
                 }
                 await ws.send_str(json.dumps(mission_claim_message) + '\x1e')
                 await asyncio.sleep(uniform(5, 8))
-
-
-    async def referrals_check(self, resp_json):
-        if self.refferal_link is None:
-            ref_links = await self.load_ref_links()
-            ref_links[self.account] = resp_json["arguments"][0]["o"]["link"]
-            await self.save_ref_links(ref_links)
 
 
     async def upgrade_boosts(self, ws, resp_json):
@@ -299,7 +301,7 @@ class BullBot:
 
                     # Проверяем реферальную ссылку и сохраняем, если ещё не сохранена
                     await self.referrals_check(resp_json)
-                    
+                   
                     # Выполянем все задания
                     await self.make_tasks(ws=ws, resp_json=resp_json)
 
@@ -372,11 +374,16 @@ class BullBot:
                                     return clicked
                 else:
                     # Если кнопка не найдена, то берем рефаральную ссылку и по ней запускаем бота, потом нажимаем на кнопку
-                    print("Button not found")
                     logger.info(f"Bull | Thread {self.thread} | {self.account} | Button not found, start with refferal link")
                     with open(self.ref_link_file, 'r') as file:
                         ref_links = json.load(file)
-                        session_name, referral_link = random.choice(list(ref_links.items()))
+                        session_name = random.choice(list(ref_links.keys()))
+                        while "Bull" not in ref_links[session_name]:
+                            print(session_name)
+                            session_name = random.choice(list(ref_links.keys()))
+                        # print(ref_links[session_name])
+                        referral_link = ref_links[session_name]["Bull"]
+                        
                         logger.info(f"Bull | Thread {self.thread} | {self.account} | Selected session: {session_name}, Referral link: {referral_link}")
                         bot_username = referral_link.split("?start=")[0].split("/")[-1]
                         start_param = referral_link.split("?start=")[-1]
@@ -389,7 +396,7 @@ class BullBot:
                                 start_param=start_param
                             )
                         )
-                        logger.info(f"Bull | Thread {self.thread} | {self.account} | Bot started: {result}")
+                        logger.info(f"Bull | Thread {self.thread} | {self.account} | Bot started")
                         clicked = False
             except Exception as e:
                 clicked = False

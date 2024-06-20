@@ -13,6 +13,7 @@ import json
 import os
 import time
 from aiohttp_socks import ProxyConnector
+from pyrogram.errors import PeerIdInvalid
 
 
 class AltooshkaBot:
@@ -70,7 +71,8 @@ class AltooshkaBot:
     async def get_ref_link(self):
         ref_links = await self.load_ref_links()
         if self.account in ref_links:
-            return ref_links[self.account]
+            if "Altooshka" in ref_links[self.account]:
+                return ref_links[self.account]["Altooshka"]
         else:
             return None
 
@@ -87,6 +89,17 @@ class AltooshkaBot:
         os.makedirs(os.path.dirname(self.ref_link_file), exist_ok=True)
         with open(self.ref_link_file, "w") as f:
             json.dump(ref_links, f, indent=4)
+
+
+    async def referrals_check(self, resp_json):
+            if self.refferal_link is None:
+                ref_links = await self.load_ref_links()
+                if self.account not in ref_links:
+                    ref_links[self.account] = {"Altooshka": resp_json["data"]["user"]["referralCode"]}
+                else:
+                    Altooshka_ref = ref_links[self.account] 
+                    Altooshka_ref["Altooshka"] = resp_json["data"]["user"]["referralCode"]
+                await self.save_ref_links(ref_links)
 
 
     async def get_user_agent(self):
@@ -114,17 +127,22 @@ class AltooshkaBot:
             json.dump(user_agents, f, indent=4)
 
 
-    async def get_stats(self):
-        query = await self.get_tg_web_data()
+    async def get_stats(self, query):
+        # query = await self.get_tg_web_data()
         resp = await self.session.get("https://api.altooshka.io/user/", params=query)
         resp_json = await resp.json()
 
         stats = await self.load_stats()
-
+        
         balance = resp_json["data"]["user"]["gems"]
-        stats[self.account]["Altooshka"] = {
-            "balance": balance
-        }
+        # print("112")
+        if self.account not in stats:
+            stats[self.account] = {"Altooshka":balance}
+        elif "Altooshka" not in stats[self.account]:
+            stats[self.account]["Altooshka"] = balance
+        else:
+            stats[self.account]["Altooshka"] = balance
+        # print("113")
         await self.save_stats(stats)
         
 
@@ -171,33 +189,7 @@ class AltooshkaBot:
                 }
                 await ws.send_str(json.dumps(mission_claim_message) + '\x1e')
                 await asyncio.sleep(uniform(5, 8))
-
-
-    async def referrals_check(self, resp_json):
-        if self.refferal_link is None:
-            ref_links = await self.load_ref_links()
-            ref_links[self.account] = resp_json["arguments"][0]["o"]["link"]
-            await self.save_ref_links(ref_links)
     
-
-    async def subs_to_init(self):
-        await self.client.connect()
-        try:
-            await self.client.join_chat("altooshka_ton")
-            logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Join chat altooshka_ton")
-            await asyncio.sleep(uniform(3,5))
-            await self.client.join_chat("AltOOshka_EN")
-            logger.info(f"Altooshka | Thread {self.thread} | {self.account} | AltOOshka_EN")
-            await asyncio.sleep(uniform(3,5))
-
-            query = await self.get_tg_web_data()
-            resp = await self.session.get("https://api.altooshka.io/user/follow", params=query)
-            print("resp =", resp)
-            
-        except Exception as e:
-            print("e = ", e)
-
-        await self.client.disconnect()
 
     async def make_action1(self, query, sleep_time):
         while True:
@@ -208,7 +200,7 @@ class AltooshkaBot:
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 1 performed")
                 sleep_time = resp_json["data"]["availableAt"] - time.time()
-                await self.get_stats()
+                await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
             logger.info(f"Altooshka Thread {self.thread} | {self.account} | Action 1, Sleep {sleep_time}")
@@ -224,7 +216,7 @@ class AltooshkaBot:
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 2 performed")
                 sleep_time = resp_json["data"]["availableAt"] - time.time()
-                await self.get_stats()
+                await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
             logger.info(f"Altooshka Thread {self.thread} | {self.account} | Action 2, Sleep {sleep_time}")
@@ -240,7 +232,7 @@ class AltooshkaBot:
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 3 performed")
                 sleep_time = resp_json["data"]["availableAt"] - time.time()
-                await self.get_stats()
+                await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
             logger.info(f"Altooshka Thread {self.thread} | {self.account} | Action 3, Sleep {sleep_time}")
@@ -255,7 +247,7 @@ class AltooshkaBot:
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 4 performed")
                 sleep_time = resp_json["data"]["availableAt"] - time.time()
-                await self.get_stats()
+                await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
             logger.info(f"Altooshka Thread {self.thread} | {self.account} | Action 4, Sleep {sleep_time}")
@@ -271,14 +263,13 @@ class AltooshkaBot:
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 5 performed")
                 sleep_time = resp_json["data"]["availableAt"] - time.time()
-                await self.get_stats()
+                await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
             logger.info(f"Altooshka Thread {self.thread} | {self.account} | Action 5, Sleep {sleep_time}")
             await asyncio.sleep(sleep_time)
 
     async def make_action6(self, query, sleep_time):
-        
         while True:
             query = await self.check_relogin(query)
             if sleep_time < time.time():
@@ -288,7 +279,7 @@ class AltooshkaBot:
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 6 performed")
                 sleep_time = resp_json["data"]["availableAt"] - time.time()
-                await self.get_stats()
+                await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
             logger.info(f"Altooshka Thread {self.thread} | {self.account} | Action 6, Sleep {sleep_time}")
@@ -299,8 +290,9 @@ class AltooshkaBot:
             await asyncio.sleep(15)
             query = await self.check_relogin(query)
             await self.session.post("https://api.altooshka.io/action/daily", params=query)
-            await self.get_stats()
+            # await self.get_stats()
             logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Daily reward gathered, Sleep {6 * 60 * 60}")
+            await self.get_stats(query)
             await asyncio.sleep(6 * 60 * 60)
         
 
@@ -323,34 +315,80 @@ class AltooshkaBot:
             self.make_action6(query, sleep_time6)
         ]
         await asyncio.gather(*tasks)
+
+
+    async def subs_to_init(self, query):
+        await self.client.connect()
+        try:
+            await self.client.join_chat("altooshka_ton")
+            logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Join chat altooshka_ton")
+            await asyncio.sleep(uniform(3,5))
+            await self.client.join_chat("AltOOshka_EN")
+            logger.info(f"Altooshka | Thread {self.thread} | {self.account} | AltOOshka_EN")
+            await asyncio.sleep(uniform(3,5))
+
+            # query = await self.get_tg_web_data()
+            # print("query =", query)
+            resp = await self.session.get("https://api.altooshka.io/user/follow/", params=query)
+            await asyncio.sleep(uniform(3,5))
+            # print("resp =", resp)
+            resp = await self.session.post("https://api.altooshka.io/user/", params=query)
+            print("resp =", resp.status)
+            await asyncio.sleep(uniform(3, 5))
+            
+        except Exception as e:
+            print("e = ", e)
+
+        await self.client.disconnect()
         
 
     async def login(self):
-        # await self.subs_to_init()
         query = await self.get_tg_web_data()
+        # print("query = ",query)
+        if self.refferal_link is None:
+            await self.subs_to_init(query)
+
         resp = await self.session.get("https://api.altooshka.io/user/", params=query)
-        asyncio.sleep(15)
-
+        
         resp_json = await resp.json()
-        # await self.get_stats()
+        # print(resp_json)
+        await asyncio.sleep(15)
+        await self.get_stats(query)
 
-        sleep_time1 = resp_json["data"]["user"]["girls"]["1"]["actions"]["1"]
-        sleep_time2 = resp_json["data"]["user"]["girls"]["1"]["actions"]["2"]
-        sleep_time3 = resp_json["data"]["user"]["girls"]["1"]["actions"]["3"]
+        await self.referrals_check(resp_json)
+        if resp_json["data"]["user"]["girls"]["1"]["actions"]:
+            sleep_time1 = resp_json["data"]["user"]["girls"]["1"]["actions"]["1"]
+            sleep_time2 = resp_json["data"]["user"]["girls"]["1"]["actions"]["2"]
+            sleep_time3 = resp_json["data"]["user"]["girls"]["1"]["actions"]["3"]
 
-        sleep_time4 = resp_json["data"]["user"]["girls"]["2"]["actions"]["8"]
-        sleep_time5 = resp_json["data"]["user"]["girls"]["2"]["actions"]["9"]
-        sleep_time6 = resp_json["data"]["user"]["girls"]["2"]["actions"]["10"]
-
+            sleep_time4 = resp_json["data"]["user"]["girls"]["2"]["actions"]["8"]
+            sleep_time5 = resp_json["data"]["user"]["girls"]["2"]["actions"]["9"]
+            sleep_time6 = resp_json["data"]["user"]["girls"]["2"]["actions"]["10"]
+        
+        else:
+            sleep_time1 = 0
+            sleep_time2 = 0
+            sleep_time3 = 0
+            sleep_time4 = 0
+            sleep_time5 = 0
+            sleep_time6 = 0
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
+            print("loop already exist")
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-        
-        loop.create_task(self.make_actions(query, sleep_time1, sleep_time2, sleep_time3, sleep_time4, sleep_time5, sleep_time6))
-        loop.run_forever()
 
+        loop.create_task(self.make_actions(query, sleep_time1, sleep_time2, sleep_time3, sleep_time4, sleep_time5, sleep_time6))
+
+        try:
+            if not loop.is_running():
+                loop.run_forever()
+
+        except Exception as e:
+            print("e =",e)
+        
+        await asyncio.sleep(999999999)
 
     async def get_tg_web_data(self):
         try:
@@ -369,3 +407,104 @@ class AltooshkaBot:
         except:
             return None
         return unquote(string=unquote(string=auth_url.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0]))
+    
+    async def check_bot_chat(self):
+        clicked = False
+        try:
+            await self.client.connect()
+            bot_username = "altooshka_bot"
+            bot = await self.client.get_users(bot_username)
+            # Пробуем получить чат по username бота
+            try:
+                messages = self.client.get_chat_history(bot.id, limit=1)
+                async for message in messages:
+                    logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Button found")
+                    await self.client.disconnect()
+                    clicked = True
+                    return clicked
+                else:
+                    logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Button not found, start with refferal link")
+                    with open(self.ref_link_file, 'r') as file:
+                                ref_links = json.load(file)
+                                session_name = {}
+                                while "Altooshka" not in ref_links[session_name]:
+                                    session_name = random.choice(list(ref_links.keys()))
+                                referral_link = ref_links[session_name]["Altooshka"]
+                                logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Selected session: {session_name}, Referral link: {referral_link}")
+                                bot_username = "altooshka_bot"
+                                start_param = referral_link
+                                result = await self.client.invoke(
+                                    raw.functions.messages.StartBot(
+                                        bot=await self.client.resolve_peer(bot_username),
+                                        peer=await self.client.resolve_peer(bot_username),
+                                        random_id=random.randint(0, 2**32 - 1),
+                                        start_param=start_param
+                                    )
+                                )
+                                logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Bot started")
+                                clicked = False
+            except Exception as e:
+                clicked = False
+                print("Error:", e)
+
+            await self.client.disconnect()
+
+        except:
+            return clicked
+        
+        
+
+    # async def click_start_button(self):
+    #     clicked = False
+    #     try:
+    #         await self.client.connect()
+    #         me = await self.client.get_me()
+    #         self.my_id = me.id
+    #         bot_username = "BullApp_bot"
+    #         bot = await self.client.get_users(bot_username)
+
+    #         try:
+    #             messages = self.client.get_chat_history(bot.id, limit=1)
+    #             async for message in messages:
+    #                 if message.reply_markup and message.reply_markup.inline_keyboard:
+    #                     # Проверяем, есть ли у нас хотя бы три ряда кнопок
+    #                     if len(message.reply_markup.inline_keyboard) >= 3:
+    #                         third_row_buttons = message.reply_markup.inline_keyboard[2]
+    #                         # Проверяем, есть ли кнопка в третьем ряду
+    #                         if third_row_buttons:
+    #                             button = third_row_buttons[0]  # Берем первую кнопку третьего ряда
+    #                             if button.url:  # Убедимся, что у кнопки есть url
+    #                                 response = await self.session.get(button.url)
+    #                                 logger.info(f"Bull | Thread {self.thread} | {self.account} | Button pressed, status: {response.status}")
+    #                                 clicked = True
+    #                                 await self.client.disconnect()
+    #                                 return clicked
+    #             else:
+    #                 # Если кнопка не найдена, то берем рефаральную ссылку и по ней запускаем бота, потом нажимаем на кнопку
+    #                 print("Button not found")
+    #                 logger.info(f"Bull | Thread {self.thread} | {self.account} | Button not found, start with refferal link")
+    #                 with open(self.ref_link_file, 'r') as file:
+    #                     ref_links = json.load(file)
+    #                     session_name, referral_link = random.choice(list(ref_links.items()))
+    #                     logger.info(f"Bull | Thread {self.thread} | {self.account} | Selected session: {session_name}, Referral link: {referral_link}")
+    #                     bot_username = referral_link.split("?start=")[0].split("/")[-1]
+    #                     start_param = referral_link.split("?start=")[-1]
+                        
+    #                     result = await self.client.invoke(
+    #                         raw.functions.messages.StartBot(
+    #                             bot=await self.client.resolve_peer(bot_username),
+    #                             peer=await self.client.resolve_peer(bot_username),
+    #                             random_id=int(time.time() * 1000),
+    #                             start_param=start_param
+    #                         )
+    #                     )
+    #                     logger.info(f"Bull | Thread {self.thread} | {self.account} | Bot started: {result}")
+    #                     clicked = False
+    #         except Exception as e:
+    #             clicked = False
+    #             print("Error:", e)
+
+    #         await self.client.disconnect()
+
+    #     except:
+    #         return clicked

@@ -38,6 +38,9 @@ async def altooshkaStart(thread: int, session_name: str, phone_number: str, prox
 
     while True:
         try:
+            await altooshka.check_bot_chat()
+            await sleep(5)
+            
             await altooshka.login()
 
             await sleep(30)
