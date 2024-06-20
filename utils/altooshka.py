@@ -6,7 +6,6 @@ from urllib.parse import unquote, quote
 import asyncio
 import aiohttp
 from fake_useragent import UserAgent
-from utils.core.register import lang_code_by_phone
 from random import uniform
 from data import config
 import json
@@ -48,7 +47,7 @@ class AltooshkaBot:
             api_hash=api_hash,
             workdir=config.WORKDIR,
             proxy=proxy,
-            lang_code=lang_code_by_phone(phone_number)
+            lang_code="ru"
         )
 
 
