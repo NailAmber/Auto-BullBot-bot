@@ -198,7 +198,10 @@ class AltooshkaBot:
                 resp = await self.session.post("https://api.altooshka.io/girls/action", params=query, json=json_data)
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 1 performed")
-                sleep_time = resp_json["data"]["availableAt"] - time.time()
+                try:
+                    sleep_time = resp_json["data"]["availableAt"] - time.time()
+                except:
+                    sleep_time = 60*60*3
                 await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
@@ -214,7 +217,10 @@ class AltooshkaBot:
                 resp = await self.session.post("https://api.altooshka.io/girls/action", params=query, json=json_data)
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 2 performed")
-                sleep_time = resp_json["data"]["availableAt"] - time.time()
+                try:
+                    sleep_time = resp_json["data"]["availableAt"] - time.time()
+                except:
+                    sleep_time = 60*60*3
                 await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
@@ -230,7 +236,10 @@ class AltooshkaBot:
                 resp = await self.session.post("https://api.altooshka.io/girls/action", params=query, json=json_data)
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 3 performed")
-                sleep_time = resp_json["data"]["availableAt"] - time.time()
+                try:
+                    sleep_time = resp_json["data"]["availableAt"] - time.time()
+                except:
+                    sleep_time = 60*60*3
                 await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
@@ -245,7 +254,10 @@ class AltooshkaBot:
                 resp = await self.session.post("https://api.altooshka.io/girls/action", params=query, json=json_data)
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 4 performed")
-                sleep_time = resp_json["data"]["availableAt"] - time.time()
+                try:
+                    sleep_time = resp_json["data"]["availableAt"] - time.time()
+                except:
+                    sleep_time = 60*60*3
                 await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
@@ -261,7 +273,10 @@ class AltooshkaBot:
                 resp = await self.session.post("https://api.altooshka.io/girls/action", params=query, json=json_data)
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 5 performed")
-                sleep_time = resp_json["data"]["availableAt"] - time.time()
+                try:
+                    sleep_time = resp_json["data"]["availableAt"] - time.time()
+                except:
+                    sleep_time = 60*60*3
                 await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
@@ -277,7 +292,10 @@ class AltooshkaBot:
                 resp = await self.session.post("https://api.altooshka.io/girls/action", params=query, json=json_data)
                 resp_json = await resp.json()
                 logger.success(f"Altooshka | Thread {self.thread} | {self.account} | Action 6 performed")
-                sleep_time = resp_json["data"]["availableAt"] - time.time()
+                try:
+                    sleep_time = resp_json["data"]["availableAt"] - time.time()
+                except:
+                    sleep_time = 60*60*3
                 await self.get_stats(query)
             else:
                 sleep_time = sleep_time - time.time()
@@ -355,22 +373,22 @@ class AltooshkaBot:
         await self.get_stats(query)
 
         await self.referrals_check(resp_json)
-        if resp_json["data"]["user"]["girls"]["1"]["actions"]:
-            sleep_time1 = resp_json["data"]["user"]["girls"]["1"]["actions"]["1"]
-            sleep_time2 = resp_json["data"]["user"]["girls"]["1"]["actions"]["2"]
-            sleep_time3 = resp_json["data"]["user"]["girls"]["1"]["actions"]["3"]
+        # if resp_json["data"]["user"]["girls"]["1"]["actions"] and "1" in resp_json["data"]["user"]["girls"]["1"]["actions"]:
+        #     sleep_time1 = resp_json["data"]["user"]["girls"]["1"]["actions"]["1"]
+        #     sleep_time2 = resp_json["data"]["user"]["girls"]["1"]["actions"]["2"]
+        #     sleep_time3 = resp_json["data"]["user"]["girls"]["1"]["actions"]["3"]
 
-            sleep_time4 = resp_json["data"]["user"]["girls"]["2"]["actions"]["8"]
-            sleep_time5 = resp_json["data"]["user"]["girls"]["2"]["actions"]["9"]
-            sleep_time6 = resp_json["data"]["user"]["girls"]["2"]["actions"]["10"]
+        #     sleep_time4 = resp_json["data"]["user"]["girls"]["2"]["actions"]["8"]
+        #     sleep_time5 = resp_json["data"]["user"]["girls"]["2"]["actions"]["9"]
+        #     sleep_time6 = resp_json["data"]["user"]["girls"]["2"]["actions"]["10"]
         
-        else:
-            sleep_time1 = 0
-            sleep_time2 = 0
-            sleep_time3 = 0
-            sleep_time4 = 0
-            sleep_time5 = 0
-            sleep_time6 = 0
+        # else:
+        sleep_time1 = 0
+        sleep_time2 = 0
+        sleep_time3 = 0
+        sleep_time4 = 0
+        sleep_time5 = 0
+        sleep_time6 = 0
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
