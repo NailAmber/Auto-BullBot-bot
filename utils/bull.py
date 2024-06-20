@@ -23,7 +23,7 @@ class BullBot:
 
         if proxy:
             proxy = {
-                "scheme": config.PROXY_TYPE,
+                "scheme": config.PROXY_TYPES['TG'],
                 "hostname": proxy.split(":")[1].split("@")[1],
                 "port": int(proxy.split(":")[2]),
                 "username": proxy.split(":")[0],
