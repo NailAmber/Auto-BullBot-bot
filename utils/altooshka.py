@@ -127,21 +127,18 @@ class AltooshkaBot:
 
 
     async def get_stats(self, query):
-        # query = await self.get_tg_web_data()
         resp = await self.session.get("https://api.altooshka.io/user/", params=query)
         resp_json = await resp.json()
         logger.info(f"Altooshka | Thread {self.thread} | {self.account} | Balance: {resp_json["data"]["user"]["gems"]}")
         stats = await self.load_stats()
         
         balance = resp_json["data"]["user"]["gems"]
-        # print("112")
         if self.account not in stats:
             stats[self.account] = {"Altooshka":balance}
         elif "Altooshka" not in stats[self.account]:
             stats[self.account]["Altooshka"] = balance
         else:
             stats[self.account]["Altooshka"] = balance
-        # print("113")
         await self.save_stats(stats)
         
 
@@ -373,22 +370,36 @@ class AltooshkaBot:
         await self.get_stats(query)
 
         await self.referrals_check(resp_json)
-        # if resp_json["data"]["user"]["girls"]["1"]["actions"] and "1" in resp_json["data"]["user"]["girls"]["1"]["actions"]:
-        #     sleep_time1 = resp_json["data"]["user"]["girls"]["1"]["actions"]["1"]
-        #     sleep_time2 = resp_json["data"]["user"]["girls"]["1"]["actions"]["2"]
-        #     sleep_time3 = resp_json["data"]["user"]["girls"]["1"]["actions"]["3"]
+        print("resp_json =", resp_json)
 
-        #     sleep_time4 = resp_json["data"]["user"]["girls"]["2"]["actions"]["8"]
-        #     sleep_time5 = resp_json["data"]["user"]["girls"]["2"]["actions"]["9"]
-        #     sleep_time6 = resp_json["data"]["user"]["girls"]["2"]["actions"]["10"]
-        
-        # else:
-        sleep_time1 = 0
-        sleep_time2 = 0
-        sleep_time3 = 0
-        sleep_time4 = 0
-        sleep_time5 = 0
-        sleep_time6 = 0
+        if resp_json["data"]["user"]["girls"]["1"]["actions"]:
+            if "1" in resp_json["data"]["user"]["girls"]["1"]["actions"]:
+                sleep_time1 = resp_json["data"]["user"]["girls"]["1"]["actions"]["1"]
+            else:
+                sleep_time1 = 0
+            if "2" in resp_json["data"]["user"]["girls"]["1"]["actions"]:
+                sleep_time2 = resp_json["data"]["user"]["girls"]["1"]["actions"]["2"]
+            else:
+                sleep_time2 = 0
+            if "3" in resp_json["data"]["user"]["girls"]["1"]["actions"]:
+                sleep_time3 = resp_json["data"]["user"]["girls"]["1"]["actions"]["3"]
+            else:
+                sleep_time3 = 0
+            
+        if resp_json["data"]["user"]["girls"]["2"]["actions"]:
+            if "1" in resp_json["data"]["user"]["girls"]["2"]["actions"]:
+                sleep_time4 = resp_json["data"]["user"]["girls"]["2"]["actions"]["1"]
+            else:
+                sleep_time4 = 0
+            if "2" in resp_json["data"]["user"]["girls"]["2"]["actions"]:
+                sleep_time5 = resp_json["data"]["user"]["girls"]["2"]["actions"]["2"]
+            else:
+                sleep_time5 = 0
+            if "3" in resp_json["data"]["user"]["girls"]["2"]["actions"]:
+                sleep_time6 = resp_json["data"]["user"]["girls"]["2"]["actions"]["3"]
+            else:
+                sleep_time6 = 0
+
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:

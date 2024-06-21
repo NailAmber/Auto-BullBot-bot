@@ -126,13 +126,33 @@ class BullBot:
         boost2 = resp_json["arguments"][0]["o"]["boost2"]
         friends = resp_json["arguments"][0]["o"]["friends"]
         completed = resp_json["arguments"][0]["o"]["completed"]
-        stats[self.account]["Bull"] = {
-            "balance": balance,
-            "boost1": boost1,
-            "boost2": boost2,
-            "friends": friends,
-            "completed": completed
-        }
+        if self.account in stats:
+            if "Bull" in stats[self.account]:
+                stats[self.account]["Bull"] = {
+                    "balance": balance,
+                    "boost1": boost1,
+                    "boost2": boost2,
+                    "friends": friends,
+                    "completed": completed
+                }
+            else:
+                bull_stats = stats[self.account]
+                bull_stats["Bull"] = {
+                    "balance": balance,
+                    "boost1": boost1,
+                    "boost2": boost2,
+                    "friends": friends,
+                    "completed": completed
+                }
+        else:
+            bull_stats = stats[self.account] = {"Bull": 
+                {"balance": balance,
+                "boost1": boost1,
+                "boost2": boost2,
+                "friends": friends,
+                "completed": completed
+                }
+            }
         await self.save_stats(stats)
         
 
@@ -170,7 +190,7 @@ class BullBot:
             'Priority': 'u=6',
         }
         
-        async with self.session.post(negotiate_url, headers=headers, proxy=self.proxy) as response:
+        async with self.session.post(negotiate_url, headers=headers) as response:
             negotiate_response = await response.json()
         
         return negotiate_response['connectionToken']
@@ -180,8 +200,8 @@ class BullBot:
         completed_tasks = resp_json["arguments"][0]["o"]["completed"]
         for mission in resp_json["arguments"][0]["o"]["missions"]:
             if mission["id"] not in completed_tasks:
-                logger.success(f"Bull| Thread {self.thread} | {self.account} | Task id: {mission["id"]}")
-                if mission["id"] in [21, 22, 184, 187]:
+                logger.success(f"Bull | Thread {self.thread} | {self.account} | Task id: {mission["id"]}")
+                if mission["id"] in [21, 22, 184, 187, 211]:
                     await self.client.connect()
                     try:
                         await self.client.join_chat("HoldBull")
@@ -191,6 +211,7 @@ class BullBot:
                         await asyncio.sleep(uniform(3,5))
                         await ws.send_str(json.dumps({"type": 6}) + '\x1e')
                         await asyncio.sleep(uniform(3,5))
+                        await self.client.join_chat("HoldBull_chat")
                         
                     except Exception as e:
                         print("e = ", e)
@@ -249,6 +270,7 @@ class BullBot:
     async def login(self):
         # Первый запрос на negotiate для получения токена
         connection_token = await self.negotiate_request()
+
         
         # Второй запрос на установление WebSocket-соединения
         websocket_url = f'wss://bullapp.online/hub?id={connection_token}'
@@ -303,12 +325,12 @@ class BullBot:
                    
                     # Выполянем все задания
                     await self.make_tasks(ws=ws, resp_json=resp_json)
-
+                    
                     # Забираем ежедневную награду
                     claim_daily_message = {"arguments":[self.my_id],"invocationId":"1","target":"DailyClaim","type":1}
                     await ws.send_str(json.dumps(claim_daily_message) + '\x1e')
                     await asyncio.sleep(uniform(5,8))
-
+                    
                     # Улучшаем бусты, если можно
                     balance, boost1_upgraded, boost2_upgraded = await self.upgrade_boosts(ws, resp_json)
                     resp_json["arguments"][0]["o"]["balance"] = balance
@@ -316,6 +338,8 @@ class BullBot:
                     resp_json["arguments"][0]["o"]["boost2"] += boost2_upgraded
                     # Записываем статистику
                     await self.get_stats(resp_json)
+
+                    logger.info(f"Bull | Thread {self.thread} | {self.account} | Balance: {resp_json["arguments"][0]["o"]["balance"]}")
 
                     # Пинг
                     await ws.send_str(json.dumps({"type": 6}) + '\x1e')
