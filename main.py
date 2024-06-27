@@ -1,13 +1,13 @@
 from utils.core import create_sessions
 from utils.telegram import Accounts
-from utils.starter import start, altooshkaStart
+from utils.starter import start, altooshkaStart, vertusStart, vertusStats
 import asyncio
 import os
 import json
 from utils.proceed_raw_api import proceed_data
 
 async def main():
-    action = int(input("Select action:\n1. Start soft\n2. Print stats\n3. Create sessions\n4. Proceed raw data api configs\n> "))
+    action = int(input("Select action:\n1. Start soft\n2. Print stats\n3. Create sessions\n4. Proceed raw data api configs\n\n> "))
 
     if not os.path.exists('sessions'): os.mkdir('sessions')
     if not os.path.exists('statistics'): os.mkdir('statistics')
@@ -22,7 +22,7 @@ async def main():
         await create_sessions()
 
     if action == 2:
-        choose_bot = int(input("Select bot:\n1. Bull\n2. Altooshka\n\n> "))
+        choose_bot = int(input("Select bot:\n1. Bull\n2. Altooshka\n3. Vertus\n\n> "))
         
         if os.path.exists("./statistics/stats.json"):
             stats = {}
@@ -35,10 +35,12 @@ async def main():
                     print(f"{session}: balance = {stats[session]["Bull"]["balance"]}, boost1 lvl = {stats[session]["Bull"]["boost1"]}, boost2 lvl = {stats[session]["Bull"]["boost2"]}, friends number: {len(logins)}, friends: {[item["login"] for item in stats[session]["Bull"]["friends"]]}, completed tasks: {stats[session]["Bull"]["completed"]}")
                 if choose_bot == 2:
                     print(f"{session}: balance = {stats[session]["Altooshka"]["balance"]}")
+                if choose_bot == 3:
+                    await vertusStats()
 
     if action == 1:
 
-        selected_bots = input("Select bots (e. 1 2):\n1. Bull\n2. Altooshka\n\n>")
+        selected_bots = input("Select bots (e. 1 2):\n1. Bull\n2. Altooshka\n3. Vertus\n\n> ")
         accounts = await Accounts().get_accounts()
 
         tasks = []
@@ -48,6 +50,8 @@ async def main():
                 tasks.append(asyncio.create_task(start(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)))
             if "2" in selected_bots:
                 tasks.append(asyncio.create_task(altooshkaStart(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)))
+            if "3" in selected_bots:
+                tasks.append(asyncio.create_task(vertusStart(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)))
 
         await asyncio.gather(*tasks)
 
