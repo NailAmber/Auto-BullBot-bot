@@ -6,3 +6,4 @@ fake-useragent==1.5.1
 phonenumbers==8.13.37
 langcodes==3.4.0
 aiohttp_socks==0.8.4
+pandas==2.2.2
