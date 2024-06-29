@@ -124,6 +124,47 @@ class Vertus:
         with open(self.user_agent_file, "w") as f:
             json.dump(user_agents, f, indent=4)
 
+    
+    async def missions_check(self):
+        resp = await self.session.post('https://api.thevertus.app/missions/get')
+        resp_json = await resp.json()
+        return resp_json
+    
+    async def complete_all_missions(self, missions):
+        for i in range(len(missions["groups"])):
+            for mission in missions["groups"][i]["missions"][0]:
+                await self.complete_mission(mission)
+        for i in range(len(missions["sponsors"])):
+            for mission in missions["sponsors"][i]:
+                await self.complete_mission(mission)
+        for mission in missions["community"][0]:
+            await self.complete_mission(mission)
+
+    async def complete_mission(self, mission):
+        if not mission['title'] in config.BLACKLIST_TASK and mission['isCompleted'] == False:
+            if 'link' in mission and 'https://t.me/' in mission['link'] and mission['type'] == 'REGULAR' and mission['resource'] == 'TELEGRAM':
+                await self.client.connect()
+                try:
+                    if '+' in mission['link']:
+                        await self.client.join_chat(mission['link'])
+                    else:
+                        await self.client.join_chat(mission['link'].split('me/')[-1])
+                except Exception as e:
+                    print("e = ", e)
+                await self.client.disconnect()
+                
+                await asyncio.sleep(1)
+
+                resp = await self.session.post('https://api.thevertus.app/missions/check-telegram', json={'missionId': mission['_id']})
+            else:
+                resp = await self.session.post('https://api.thevertus.app/missions/complete', json={'missionId': mission['_id']})
+            try:
+                resp_json = await resp.json()
+                print(mission['title'], resp_json['message'])
+            except Exception as e:
+                print('e = ', e)
+            await asyncio.sleep(5)
+            
 
     async def buy_upgrade_card(self, card_id: str):
         resp = await self.session.post('https://api.thevertus.app/upgrade-cards/upgrade', json={'cardId': card_id})

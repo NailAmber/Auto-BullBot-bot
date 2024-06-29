@@ -58,6 +58,7 @@ async def altooshkaStart(thread: int, session_name: str, phone_number: str, prox
             logger.error(f"Altooshka | Thread {thread} | {account} | Error: {e}")
 
 async def vertusStart(thread: int, session_name: str, phone_number: str, proxy: [str, None]):
+    await asyncio.sleep(uniform(*config.DELAYS['ACCOUNT']))
     vertus = await Vertus.create(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)
     account = session_name + '.session'
 
@@ -82,6 +83,10 @@ async def vertusStart(thread: int, session_name: str, phone_number: str, proxy: 
                     else:
                         logger.error(f"Vertus | Thread {thread} | {account} | Can't claim daily reward! Response {status}")
 
+                await vertus.complete_all_missions(await vertus.missions_check())
+
+                await asyncio.sleep(5)
+                
                 storage = vertus.get_storage(data)
 
                 if storage >= 0.003:

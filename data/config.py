@@ -13,6 +13,8 @@ PROXY_TYPES = {
     "REQUESTS": "http"  # proxy type for requests. "http" for https and http proxys, "socks5" for socks5 proxy.
 }
 
+BLACKLIST_TASK = []
+
 # session folder (do not change)
 WORKDIR = "sessions/"
 
