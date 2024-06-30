@@ -148,7 +148,7 @@ class Vertus:
                     if '+' in mission['link']:
                         await self.client.join_chat(mission['link'])
                     else:
-                        await self.client.join_chat(mission['link'].split('me/')[-1])
+                        await self.client.join_chat(mission['link'].split('/')[3])
                 except Exception as e:
                     print("e = ", e)
                 await self.client.disconnect()
