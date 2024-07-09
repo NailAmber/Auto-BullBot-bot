@@ -201,18 +201,15 @@ class BullBot:
         for mission in resp_json["arguments"][0]["o"]["missions"]:
             if mission["id"] not in completed_tasks:
                 logger.success(f"Bull | Thread {self.thread} | {self.account} | Task id: {mission["id"]}")
-                if mission["id"] in [21, 22, 184, 187, 211]:
+                if 'url' in mission and 'https://t.me/' in mission["url"]:
                     await self.client.connect()
                     try:
-                        await self.client.join_chat("HoldBull")
-                        await asyncio.sleep(uniform(3,5))
+                        if '+' in mission['url']:
+                            await self.client.join_chat(mission['url'])
+                        else:
+                            await self.client.join_chat(mission['url'].split('/')[3])
                         await ws.send_str(json.dumps({"type": 6}) + '\x1e')
-                        await self.client.join_chat("HoldBull_ru")
-                        await asyncio.sleep(uniform(3,5))
-                        await ws.send_str(json.dumps({"type": 6}) + '\x1e')
-                        await asyncio.sleep(uniform(3,5))
-                        await self.client.join_chat("HoldBull_chat")
-                        
+                        await asyncio.sleep(uniform(5,8))
                     except Exception as e:
                         print("e = ", e)
 
@@ -229,12 +226,11 @@ class BullBot:
 
 
     async def upgrade_boosts(self, ws, resp_json):
-        next_boost1 = resp_json["arguments"][0]["o"]["boost1_next"]
-        next_boost2 = resp_json["arguments"][0]["o"]["boost2_next"]
         balance = resp_json["arguments"][0]["o"]["balance"]
         boost1_upgraded = 0
         boost2_upgraded = 0
-        if balance > next_boost2["coins"]:
+        next_boost2 = resp_json["arguments"][0]["o"]["boost2_next"]
+        if next_boost2 != None and balance > next_boost2["coins"]:
             boost2_message = {
                 "arguments":[
                     self.my_id
@@ -249,20 +245,20 @@ class BullBot:
             boost2_upgraded += 1
             await asyncio.sleep(uniform(5, 8))
 
-        if balance > next_boost1["coins"]:
-            boost1_message = {
-                "arguments":[
-                    self.my_id
-                ],
-                "invocationId":"1",
-                "target":"Boost1",
-                "type":1
-            }
-            await ws.send_str(json.dumps(boost1_message) + '\x1e')
-            balance = balance - next_boost1["coins"]
-            logger.success(f"Bull | Thread {self.thread} | {self.account} | Boost1 upgraded!, Balance: {balance}")
-            boost1_upgraded += 1 
-            await asyncio.sleep(uniform(5, 8))
+        # if balance > next_boost1["coins"]:
+        #     boost1_message = {
+        #         "arguments":[
+        #             self.my_id
+        #         ],
+        #         "invocationId":"1",
+        #         "target":"Boost1",
+        #         "type":1
+        #     }
+        #     await ws.send_str(json.dumps(boost1_message) + '\x1e')
+        #     balance = balance - next_boost1["coins"]
+        #     logger.success(f"Bull | Thread {self.thread} | {self.account} | Boost1 upgraded!, Balance: {balance}")
+        #     boost1_upgraded += 1 
+        #     await asyncio.sleep(uniform(5, 8))
         
         return balance, boost1_upgraded, boost2_upgraded
 
@@ -333,9 +329,11 @@ class BullBot:
                     
                     # Улучшаем бусты, если можно
                     balance, boost1_upgraded, boost2_upgraded = await self.upgrade_boosts(ws, resp_json)
+                    
                     resp_json["arguments"][0]["o"]["balance"] = balance
                     resp_json["arguments"][0]["o"]["boost1"] += boost1_upgraded
                     resp_json["arguments"][0]["o"]["boost2"] += boost2_upgraded
+                    
                     # Записываем статистику
                     await self.get_stats(resp_json)
 

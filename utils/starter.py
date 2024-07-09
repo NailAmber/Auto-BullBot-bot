@@ -1,5 +1,6 @@
 from utils.bull import BullBot
 from utils.altooshka import AltooshkaBot
+from utils.major import MajorBot
 from utils.vertus import Vertus
 from asyncio import sleep
 from random import uniform
@@ -142,6 +143,29 @@ async def vertusStart(thread: int, session_name: str, phone_number: str, proxy: 
 
     else:
         await vertus.logout()
+
+
+async def majorStart(thread: int, session_name: str, phone_number: str, proxy: [str, None]):
+    major = await MajorBot.create(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)
+    account = session_name + '.session'
+
+    await sleep(uniform(*config.DELAYS['ACCOUNT']))
+
+    while True:
+        try:
+            await major.check_bot_chat()
+            await sleep(5)
+            
+            await major.login()
+
+            await sleep(30)
+
+        except ContentTypeError as e:
+            logger.error(f"Major | Thread {thread} | {account} | Error: {e}")
+            await asyncio.sleep(120)
+
+        except Exception as e:
+            logger.error(f"Major | Thread {thread} | {account} | Error: {e}")
 
 async def vertusStats():
     accounts = await Accounts().get_accounts()

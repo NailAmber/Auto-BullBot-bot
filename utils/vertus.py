@@ -297,7 +297,7 @@ class Vertus:
         query = await self.get_tg_web_data()
 
         if query is None:
-            logger.error(f"Thread {self.thread} | {self.account} | Session {self.account} invalid")
+            logger.error(f"Vertus | Thread {self.thread} | {self.account} | Session {self.account} invalid")
             await self.logout()
             return None
 
