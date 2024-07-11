@@ -12,24 +12,7 @@ from data import config
 import json
 import os
 import time
-from aiohttp_socks import ProxyConnector
-from pyrogram.errors import PeerIdInvalid
 import httpx
-
-
-class CustomClientRequest(ClientRequest):
-    async def send(self, conn):
-        print("\n=== Отправляемый запрос ===")
-        print(f"URL: {self.url}")
-        print(f"Method: {self.method}")
-        print("Headers:")
-        for name, value in self.headers.items():
-            print(f"{name}: {value}")
-        if self.body:
-            print("Body:")
-            print(json.dumps(json.loads(self.body._value.decode('utf-8')), indent=2))
-        print("===========================\n")
-        return await super().send(conn)
 
 class MajorBot:
     def __init__(self, thread: int, session_name: str, phone_number: str, proxy: [str, None]):
@@ -71,9 +54,7 @@ class MajorBot:
         self.refferal_link = await self.get_ref_link()
         user_agent = await self.get_user_agent()
         headers = {'User-Agent': user_agent}
-        # connector = ProxyConnector.from_url(self.proxy) if proxy else aiohttp.TCPConnector(verify_ssl=False)
-        # self.session = aiohttp.ClientSession(request_class=CustomClientRequest, headers=headers, trust_env=True, connector=connector, timeout=aiohttp.ClientTimeout(120))
-        self.session = httpx.AsyncClient()
+        self.session = httpx.AsyncClient(headers=headers)
         self.initialized = True
 
 
@@ -107,14 +88,14 @@ class MajorBot:
             json.dump(ref_links, f, indent=4)
 
 
-    async def referrals_check(self, resp_json):
+    async def referrals_check(self, resp_json, ref_number):
             if self.refferal_link is None:
                 ref_links = await self.load_ref_links()
                 if self.account not in ref_links:
-                    ref_links[self.account] = {"Altooshka": resp_json["data"]["user"]["referralCode"]}
+                    ref_links[self.account] = {"Major": resp_json["data"]["user"]["referralCode"]}
                 else:
                     Altooshka_ref = ref_links[self.account] 
-                    Altooshka_ref["Altooshka"] = resp_json["data"]["user"]["referralCode"]
+                    Altooshka_ref["Major"] = resp_json["data"]["user"]["referralCode"]
                 await self.save_ref_links(ref_links)
 
 
@@ -372,26 +353,29 @@ class MajorBot:
 
         await self.client.disconnect()
         
+    async def make_task(self, resp_json, headers):
+        for task in resp_json:
+            json_data = {
+                'task_id': task['id']
+            }
+            resp = await self.session.post('https://major.glados.app/api/tasks/', json=json_data, headers=headers)
+            logger
+            resp_json = resp.json()
+            logger.info(f"Major | Thread {self.thread} | {self.account} | Try task {resp_json['task_id']}")
+            await asyncio.sleep(2)
 
     async def login(self):
         query = await self.get_tg_web_data()
-        # print("query = ",query)
-        if self.refferal_link is None:
-            await self.subs_to_init(query)
-
         headers = {
         'Host': 'major.glados.app',
         'Pragma': 'no-cache',
-        'Cookies': 'cf_clearance=SUU5HZKQdMdFyPsDDUgAJQbMBsvmV1SR60bwar0n6eg-1720549176-1.0.1.1-cvHeTIw7m4V0Ex360Q5sLfjnIOB0z0FPiZcDo0MEvN8hRrTjpodr_aIXpLKYgfZXxB_IE05fV5I1oSds6KlGDg',
         'Cache-Control': 'no-cache',
         'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
         'Sec-Ch-Ua-Mobile': '0',
         'Sec-Ch-Ua-Platform': '"Android"',
         'Upgrade-Insecure-Requests': '0',
         'Sec-Fetch-User': '0',
-        # 'Content-Length': '16',
         'Accept': 'application/json, text/plain, */*',
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1',
         'Content-Type': 'application/json',
         'Origin': 'https://major.glados.app',
         'Sec-Fetch-Site': 'same-origin',
@@ -404,71 +388,30 @@ class MajorBot:
         json_data = {
             'init_data': query
         }
+        print('query :', query)
         await asyncio.sleep(2)
         resp = await self.session.post('https://major.glados.app/api/auth/tg/', json=json_data, headers=headers)
         resp_json = resp.json()
+        logger.info(f"Major | Thread {self.thread} | {self.account} | Auth in app, {resp.status_code}")
         self.session.headers.pop('Authorization', None)
-        
         self.session.headers['Authorization'] = "Bearer " + resp_json.get("access_token")
         resp = await self.session.get("https://major.glados.app/api/tasks/?is_daily=true", headers=headers)
+        resp_json_daily = resp.json()
+        logger.info(f"Major | Thread {self.thread} | {self.account} | Daily tasks, {[task['title'] for task in resp_json_daily]}")
+        await asyncio.sleep(1)
+        await self.make_task(resp_json_daily, headers)
+        resp = await self.session.get("https://major.glados.app/api/tasks/?is_daily=false", headers=headers)
+        resp_json_not_daily = resp.json()
+        logger.info(f"Major | Thread {self.thread} | {self.account} | Not Daily tasks, {[task['title'] for task in resp_json_not_daily]}")
+        await asyncio.sleep(1)
+        await self.make_task(resp_json_not_daily, headers)
+        resp = await self.session.get('https://major.glados.app/api/users/referrals/', headers=headers)
         resp_json = resp.json()
-        print(resp_json)
-        await asyncio.sleep(325235)
-        
-        
-        
-        # print(resp_json)
-        await asyncio.sleep(15)
-        await self.get_stats(query)
+        ref_number = len(resp_json)
+        await self.referrals_check(resp_json, ref_number)
+        logger.info(f"Major | Thread {self.thread} | {self.account} | Sleep {60 * 60}")
+        await asyncio.sleep(60 * 60)
 
-        await self.referrals_check(resp_json)
-        print("resp_json =", resp_json)
-
-        if resp_json["data"]["user"]["girls"]["1"]["actions"]:
-            if "1" in resp_json["data"]["user"]["girls"]["1"]["actions"]:
-                sleep_time1 = resp_json["data"]["user"]["girls"]["1"]["actions"]["1"]
-            else:
-                sleep_time1 = 0
-            if "2" in resp_json["data"]["user"]["girls"]["1"]["actions"]:
-                sleep_time2 = resp_json["data"]["user"]["girls"]["1"]["actions"]["2"]
-            else:
-                sleep_time2 = 0
-            if "3" in resp_json["data"]["user"]["girls"]["1"]["actions"]:
-                sleep_time3 = resp_json["data"]["user"]["girls"]["1"]["actions"]["3"]
-            else:
-                sleep_time3 = 0
-            
-        if resp_json["data"]["user"]["girls"]["2"]["actions"]:
-            if "1" in resp_json["data"]["user"]["girls"]["2"]["actions"]:
-                sleep_time4 = resp_json["data"]["user"]["girls"]["2"]["actions"]["1"]
-            else:
-                sleep_time4 = 0
-            if "2" in resp_json["data"]["user"]["girls"]["2"]["actions"]:
-                sleep_time5 = resp_json["data"]["user"]["girls"]["2"]["actions"]["2"]
-            else:
-                sleep_time5 = 0
-            if "3" in resp_json["data"]["user"]["girls"]["2"]["actions"]:
-                sleep_time6 = resp_json["data"]["user"]["girls"]["2"]["actions"]["3"]
-            else:
-                sleep_time6 = 0
-
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            print("loop already exist")
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        loop.create_task(self.make_actions(query, sleep_time1, sleep_time2, sleep_time3, sleep_time4, sleep_time5, sleep_time6))
-
-        try:
-            if not loop.is_running():
-                loop.run_forever()
-
-        except Exception as e:
-            print("e =",e)
-        
-        await asyncio.sleep(999999999)
 
     async def get_tg_web_data(self):
         try:
@@ -514,20 +457,21 @@ class MajorBot:
                     with open(self.ref_link_file, 'r') as file:
                                 ref_links = json.load(file)
                                 if ref_links != {}:
-                                    session_name = random.choice(list(ref_links.keys()))
-                                    atemp = 0
-                                    while "major" not in ref_links[session_name] and atemp < 5:
-                                        session_name = random.choice(list(ref_links.keys()))
-                                        atemp += 1
-                                    if atemp == 5:
-                                        referral_link = ""
+                                    max_ref_session = -1
+                                    good_ref_link = ''
+                                    for session in ref_links:
+                                        if 'Major' in session:
+                                            if max_ref_session < session['Major']['Ref_numbers'] < 10:
+                                                good_ref_link = session['Major']["Ref_link"]
+                                                max_ref_session = session['Major']['Ref_numbers']
+                                    if good_ref_link != '':
+                                        logger.info(f"Major | Thread {self.thread} | {self.account} | Selected referral link: {good_ref_link}")
                                     else:
-                                        referral_link = ref_links[session_name]["Altooshka"]
-                                        logger.info(f"Major | Thread {self.thread} | {self.account} | Selected session: {session_name}, Referral link: {referral_link}")
-                                else:
-                                    referral_link = ""
+                                        logger.info(f"Major | Thread {self.thread} | Start with default ref link")
+                                        good_ref_link = '374069367'
+
                                 bot_username = "major"
-                                start_param = referral_link
+                                start_param = good_ref_link
                                 result = await self.client.invoke(
                                     raw.functions.messages.StartBot(
                                         bot=await self.client.resolve_peer(bot_username),

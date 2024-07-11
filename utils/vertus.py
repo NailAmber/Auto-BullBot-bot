@@ -105,7 +105,7 @@ class Vertus:
         if self.account in user_agents:
             return user_agents[self.account]
         else:
-            new_user_agent = UserAgent(os='android').random
+            new_user_agent = UserAgent(os='ios').random
             user_agents[self.account] = new_user_agent
             await self.save_user_agents(user_agents)
             return new_user_agent
