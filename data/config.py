@@ -20,3 +20,13 @@ WORKDIR = "sessions/"
 
 # timeout in seconds for checking accounts on valid
 TIMEOUT = 30
+
+MAJOR_REFS_NUMBER = [10,13]
+
+MAJOR_REFS = {
+    '374069367',
+    '2222',
+    '3333',
+    '4444',
+    '5555'
+}

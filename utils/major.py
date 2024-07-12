@@ -22,6 +22,7 @@ class MajorBot:
         self.user_agent_file = "./sessions/user_agents.json"
         self.statistics_file = "./statistics/stats.json"
         self.ref_link_file = "./sessions/ref_links.json"
+        self.major_refs = './sessions/major_refs.json'
         
 
         if proxy:
@@ -88,14 +89,14 @@ class MajorBot:
             json.dump(ref_links, f, indent=4)
 
 
-    async def referrals_check(self, resp_json, ref_number):
+    async def referrals_check(self, ref_number):
             if self.refferal_link is None:
                 ref_links = await self.load_ref_links()
                 if self.account not in ref_links:
-                    ref_links[self.account] = {"Major": resp_json["data"]["user"]["referralCode"]}
+                    ref_links[self.account] = {"Major": ref_number}
                 else:
-                    Altooshka_ref = ref_links[self.account] 
-                    Altooshka_ref["Major"] = resp_json["data"]["user"]["referralCode"]
+                    Major_ref = ref_links[self.account] 
+                    Major_ref["Major"] = ref_number
                 await self.save_ref_links(ref_links)
 
 
@@ -123,6 +124,17 @@ class MajorBot:
         with open(self.user_agent_file, "w") as f:
             json.dump(user_agents, f, indent=4)
 
+    async def load_major_refs(self):
+        if os.path.exists(self.major_refs):
+            with open(self.major_refs, 'r') as f:
+                return json.load(f)
+        else:
+            return {}
+        
+    async def save_major_refs(self, major_refs):
+        os.makedirs(os.path.dirname(self.major_refs), exist_ok=True)
+        with open(self.major_refs, 'w') as f:
+            json.dump(major_refs, f, indent=4)
 
     async def get_stats(self, query):
         resp = await self.session.get("https://api.altooshka.io/user/", params=query)
@@ -405,10 +417,6 @@ class MajorBot:
         logger.info(f"Major | Thread {self.thread} | {self.account} | Not Daily tasks, {[task['title'] for task in resp_json_not_daily]}")
         await asyncio.sleep(1)
         await self.make_task(resp_json_not_daily, headers)
-        resp = await self.session.get('https://major.glados.app/api/users/referrals/', headers=headers)
-        resp_json = resp.json()
-        ref_number = len(resp_json)
-        await self.referrals_check(resp_json, ref_number)
         logger.info(f"Major | Thread {self.thread} | {self.account} | Sleep {60 * 60}")
         await asyncio.sleep(60 * 60)
 
@@ -454,34 +462,39 @@ class MajorBot:
                     return clicked
                 else:
                     logger.info(f"Major | Thread {self.thread} | {self.account} | Button not found, start with refferal link")
-                    with open(self.ref_link_file, 'r') as file:
-                                ref_links = json.load(file)
-                                if ref_links != {}:
-                                    max_ref_session = -1
-                                    good_ref_link = ''
-                                    for session in ref_links:
-                                        if 'Major' in session:
-                                            if max_ref_session < session['Major']['Ref_numbers'] < 10:
-                                                good_ref_link = session['Major']["Ref_link"]
-                                                max_ref_session = session['Major']['Ref_numbers']
-                                    if good_ref_link != '':
-                                        logger.info(f"Major | Thread {self.thread} | {self.account} | Selected referral link: {good_ref_link}")
-                                    else:
-                                        logger.info(f"Major | Thread {self.thread} | Start with default ref link")
-                                        good_ref_link = '374069367'
 
-                                bot_username = "major"
-                                start_param = good_ref_link
-                                result = await self.client.invoke(
-                                    raw.functions.messages.StartBot(
-                                        bot=await self.client.resolve_peer(bot_username),
-                                        peer=await self.client.resolve_peer(bot_username),
-                                        random_id=random.randint(0, 2**32 - 1),
-                                        start_param=start_param
-                                    )
-                                )
-                                logger.info(f"Major | Thread {self.thread} | {self.account} | Bot started")
-                                clicked = False
+                    major_refs = await self.load_major_refs()
+                    if major_refs == {}:
+                        for refka in config.MAJOR_REFS:
+                            major_refs[refka] = {'current': 0, 'max': int(uniform(config.MAJOR_REFS_NUMBER[0], config.MAJOR_REFS_NUMBER[1]))}
+                    print('refki =',major_refs)
+                    max_ref_session = -1
+                    good_ref_link = ''
+                    for ref in major_refs:
+                        if max_ref_session < major_refs[ref]['current'] and major_refs[ref]['current'] < major_refs[ref]['max']:
+                            max_ref_session = major_refs[ref]['current']
+                            good_ref_link = ref
+                    if good_ref_link == '':
+                        good_ref_link = '374069367'
+                    else:
+                        major_refs[good_ref_link]['current'] += 1
+                    
+                    await self.save_major_refs(major_refs)
+                    logger.info(f"Major | Thread {self.thread} | {self.account} | Loging under ref: {good_ref_link}")
+                    # await asyncio.sleep(2252525)
+                    
+                    bot_username = "major"
+                    start_param = good_ref_link
+                    result = await self.client.invoke(
+                        raw.functions.messages.StartBot(
+                            bot=await self.client.resolve_peer(bot_username),
+                            peer=await self.client.resolve_peer(bot_username),
+                            random_id=random.randint(0, 2**32 - 1),
+                            start_param=start_param
+                        )
+                    )
+                    logger.info(f"Major | Thread {self.thread} | {self.account} | Bot started")
+                    clicked = False
             except Exception as e:
                 clicked = False
                 print("Error:", e)
