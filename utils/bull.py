@@ -89,8 +89,12 @@ class BullBot:
     async def referrals_check(self, resp_json):
             if self.refferal_link is None:
                 ref_links = await self.load_ref_links()
-                bull_ref = ref_links[self.account] 
-                bull_ref["Bull"] = resp_json["arguments"][0]["o"]["link"]
+                if self.account in ref_links:
+                    bull_ref = ref_links[self.account]
+                    bull_ref["Bull"] = resp_json["arguments"][0]["o"]["link"]
+                else:
+                    ref_links[self.account] = {'Bull': resp_json["arguments"][0]["o"]["link"]} 
+                
                 await self.save_ref_links(ref_links)
 
 
@@ -315,13 +319,13 @@ class BullBot:
                     # Получаем ответ
                     response = await ws.receive()
                     resp_json = json.loads(response.data[:-1])
-
+                    
                     # Проверяем реферальную ссылку и сохраняем, если ещё не сохранена
                     await self.referrals_check(resp_json)
-                   
+
                     # Выполянем все задания
                     await self.make_tasks(ws=ws, resp_json=resp_json)
-                    
+
                     # Забираем ежедневную награду
                     claim_daily_message = {"arguments":[self.my_id],"invocationId":"1","target":"DailyClaim","type":1}
                     await ws.send_str(json.dumps(claim_daily_message) + '\x1e')

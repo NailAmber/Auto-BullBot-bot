@@ -153,8 +153,6 @@ async def majorStart(thread: int, session_name: str, phone_number: str, proxy: [
 
     while True:
         try:
-            await major.check_bot_chat()
-            await sleep(5)
             
             await major.login()
 
