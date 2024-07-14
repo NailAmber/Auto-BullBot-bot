@@ -149,7 +149,7 @@ async def majorStart(thread: int, session_name: str, phone_number: str, proxy: [
     major = await MajorBot.create(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)
     account = session_name + '.session'
 
-    await sleep(uniform(*config.DELAYS['ACCOUNT']))
+    await sleep(uniform(config.DELAYS['ACCOUNT'][0], config.DELAYS['ACCOUNT'][1]))
 
     while True:
         try:

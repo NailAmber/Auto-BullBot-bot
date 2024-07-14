@@ -142,7 +142,7 @@ class MajorBot:
 
     async def make_task(self, resp_json, headers):
         for task in resp_json:
-            if 'https://t.me/' in task['payload']['url']:
+            if 'https://t.me/' in task['payload']['url'] and not 'boost' in task['payload']['url']:
                 await self.client.connect()
                 try:
                     if '+' in task['payload']['url']:
@@ -199,6 +199,10 @@ class MajorBot:
         self.session.headers.pop('Authorization', None)
         self.session.headers['Authorization'] = "Bearer " + resp_json.get("access_token")
 
+        resp = await self.session.post('https://major.glados.app/api/user-visits/visit/?', headers=headers)
+        resp_json = resp.json()
+        await asyncio.sleep(3)
+
         resp = await self.session.get("https://major.glados.app/api/tasks/?is_daily=true", headers=headers)
         resp_json_daily = resp.json()
         logger.info(f"Major | Thread {self.thread} | {self.account} | Daily tasks, {[task['title'] for task in resp_json_daily]}")
@@ -217,14 +221,20 @@ class MajorBot:
         await self.make_task(resp_json_not_daily, headers)
 
         try:
+            resp = await self.session.get(f'https://major.glados.app/api/users/{user_id}/', headers=headers)
+            resp_json = resp.json()
+            rating = resp_json['rating']
+            await asyncio.sleep(1)
             resp = await self.session.get(f'https://major.glados.app/api/users/top/position/{user_id}/?', headers=headers)
             resp_json = resp.json()
-            logger.success(f"Major | Thread {self.thread} | {self.account} | Position: {resp_json['position']}")
+            position = resp_json['position']
+            logger.success(f"Major | Thread {self.thread} | {self.account} | Rating: {rating}, Pos: {position}")
         except Exception as e:
             logger.error(f"Major | Thread {self.thread} | {self.account} | e = {e}")
-
-        logger.info(f"Major | Thread {self.thread} | {self.account} | Sleep {60 * 60 * 12}")
-        await asyncio.sleep(60 * 60 * 12)
+        sleep_time = 60 * 60 * 12 + uniform(config.DELAYS['MAJOR_SLEEP'][0], config.DELAYS['MAJOR_SLEEP'][1])
+        logger.info(f"Major | Thread {self.thread} | {self.account} | Sleep {sleep_time}")
+        for _ in range(int(sleep_time / 60)):
+            await asyncio.sleep(60)
 
 
     async def get_tg_web_data(self):
@@ -277,59 +287,3 @@ class MajorBot:
             return query
         except:
             return None
-    
-    async def check_bot_chat(self):
-        await asyncio.sleep(random.uniform(*config.DELAYS['ACCOUNT']))
-        clicked = False
-        try:
-            await self.client.connect()
-            bot_username = "major"
-            bot = await self.client.get_users(bot_username)
-            # Пробуем получить чат по username бота
-            try:
-                messages = self.client.get_chat_history(bot.id, limit=1)
-                async for message in messages:
-                    logger.info(f"Major | Thread {self.thread} | {self.account} | Button found")
-                    await self.client.disconnect()
-                    clicked = True
-                    return clicked
-                else:
-                    logger.info(f"Major | Thread {self.thread} | {self.account} | Button not found, start with refferal link")
-
-                    major_refs = await self.load_major_refs()
-                    if major_refs == {}:
-                        for refka in config.MAJOR_REFS:
-                            major_refs[refka] = {'current': 0, 'max': int(uniform(config.MAJOR_REFS_NUMBER[0], config.MAJOR_REFS_NUMBER[1]))}
-                    print('refki =',major_refs)
-                    max_ref_session = -1
-                    good_ref_link = ''
-                    for ref in major_refs:
-                        if max_ref_session < major_refs[ref]['current'] and major_refs[ref]['current'] < major_refs[ref]['max']:
-                            max_ref_session = major_refs[ref]['current']
-                            good_ref_link = ref
-                    if good_ref_link == '':
-                        good_ref_link = '374069367'
-                    else:
-                        major_refs[good_ref_link]['current'] += 1
-                    
-                    await self.save_major_refs(major_refs)
-                    logger.info(f"Major | Thread {self.thread} | {self.account} | Loging under ref: {good_ref_link}")
-
-                    web_view = await self.client.invoke(RequestAppWebView(
-                        peer=await self.client.resolve_peer('major'),
-                        app=InputBotAppShortName(bot_id=await self.client.resolve_peer('major'), short_name="start"),
-                        platform='ios',
-                        write_allowed=True,
-                        start_param=good_ref_link
-                    ))
-
-                    logger.info(f"Major | Thread {self.thread} | {self.account} | Bot started")
-                    clicked = False
-            except Exception as e:
-                clicked = False
-                print("Error:", e)
-
-            await self.client.disconnect()
-
-        except:
-            return clicked
