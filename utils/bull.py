@@ -358,7 +358,8 @@ class BullBot:
                     else:
                         time_to_sleep = claim_remain
                         logger.info(f"Bull | Thread {self.thread} | {self.account} | Sleep {time_to_sleep} seconds!")
-                        await asyncio.sleep(time_to_sleep)
+                        for _ in range(int(time_to_sleep / 60)):
+                            await asyncio.sleep(60)
                         
                 
                     
