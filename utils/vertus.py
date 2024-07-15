@@ -158,11 +158,11 @@ class Vertus:
                 resp = await self.session.post('https://api.thevertus.app/missions/check-telegram', json={'missionId': mission['_id']})
             else:
                 resp = await self.session.post('https://api.thevertus.app/missions/complete', json={'missionId': mission['_id']})
-            try:
-                resp_json = await resp.json()
-                print(mission['title'], resp_json['message'])
-            except Exception as e:
-                print('e = ', e)
+            # try:
+                # resp_json = await resp.json()
+                # print(mission['title'], resp_json['message'])
+            # except Exception as e:
+                # print('e = ', e)
             await asyncio.sleep(5)
             
 
