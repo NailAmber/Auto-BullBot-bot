@@ -10,6 +10,8 @@ import json
 import os
 import time
 from aiohttp_socks import ProxyConnector
+import ssl
+import certifi
 
 
 class BullBot:
@@ -268,6 +270,7 @@ class BullBot:
 
 
     async def login(self):
+
         # Первый запрос на negotiate для получения токена
         connection_token = await self.negotiate_request()
 
@@ -294,8 +297,9 @@ class BullBot:
             'Cache-Control': 'no-cache',
             'Upgrade': 'websocket',
         }
-
-        async with self.session.ws_connect(websocket_url, headers=ws_headers) as ws:
+        ssl_context = ssl.create_default_context()
+        ssl_context.load_verify_locations(certifi.where())
+        async with self.session.ws_connect(websocket_url, headers=ws_headers, ssl=ssl_context) as ws:
             # Отправляем {"protocol":"json","version":1}
             await ws.send_str(json.dumps({"protocol": "json", "version": 1}) + '\x1e')
             response = await ws.receive()
