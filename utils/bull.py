@@ -405,11 +405,11 @@ class BullBot:
                         ref_links = json.load(file)
                         session_name = random.choice(list(ref_links.keys()))
                         atemp = 0
-                        while "Bull" not in ref_links[session_name] and atemp < 5:
+                        while "Bull" not in ref_links[session_name] and atemp < 50:
                             session_name = random.choice(list(ref_links.keys()))
                             atemp += 1
-                        if atemp == 5:
-                            start_param = ""
+                        if atemp == 50:
+                            start_param = "https://t.me/BullApp_bot?start=374069367_2816"
                             bot_username = "BullApp_bot"
                         else:
                             # print(ref_links[session_name])
