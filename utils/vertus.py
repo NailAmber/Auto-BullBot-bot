@@ -180,7 +180,7 @@ class Vertus:
 
         cards = []
         for card in upgrade_cards:
-            if not card['isLocked'] and card['isUpgradable'] and self.from_nano(card['levels'][card['currentLevel']]['cost']) <= balance:
+            if not card['isLocked'] and card['isUpgradable'] and self.from_nano(card['levels'][card['currentLevel']]['cost']) <= balance and card['currentLevel'] <= config.VERTUS_UPRGADE_LVL:
                 cards.append({
                     "id": card['_id'],
                     "profitability": card['levels'][card['currentLevel']]['value'] / card['levels'][card['currentLevel']]['cost'],

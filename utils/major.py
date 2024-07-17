@@ -188,7 +188,7 @@ class MajorBot:
         json_data = {
             'init_data': query
         }
-        # print(f'query {self.account} :', query)
+        print(f'query {self.account} :', query)
         await asyncio.sleep(2)
         resp = await self.session.post('https://major.glados.app/api/auth/tg/', json=json_data, headers=headers)
         resp_json = resp.json()
@@ -219,6 +219,13 @@ class MajorBot:
         logger.info(f"Major | Thread {self.thread} | {self.account} | Not Daily tasks, {[task['title'] for task in resp_json_not_daily]}")
         await asyncio.sleep(1)
         await self.make_task(resp_json_not_daily, headers)
+
+        resp = await self.session.post("https://major.glados.app/api/roulette?", headers=headers)
+        resp_json_not_daily = resp.json()
+        logger.success(f"Major | Thread {self.thread} | {self.account} | Roulette done")
+        await asyncio.sleep(1)
+
+        
 
         try:
             resp = await self.session.get(f'https://major.glados.app/api/users/{user_id}/', headers=headers)

@@ -22,8 +22,10 @@ WORKDIR = "sessions/"
 # timeout in seconds for checking accounts on valid
 TIMEOUT = 30
 
-MAJOR_REFS_NUMBER = [10,13]
+MAJOR_REFS_NUMBER = [10,13] # Сколько рефок на аккаунт major
 
-MAJOR_REFS = {
+MAJOR_REFS = { # Сами рефки, код приглашения
     '374069367',
 }
+
+VERTUS_UPRGADE_LVL = 3 # До какого уровня качать апгрейды в Vertus
