@@ -2,6 +2,7 @@ from utils.bull import BullBot
 from utils.altooshka import AltooshkaBot
 from utils.major import MajorBot
 from utils.vertus import Vertus
+from utils.wormfare import WormfareBot
 from asyncio import sleep
 from random import uniform
 from data import config
@@ -164,6 +165,26 @@ async def majorStart(thread: int, session_name: str, phone_number: str, proxy: [
 
         except Exception as e:
             logger.error(f"Major | Thread {thread} | {account} | Error: {e}")
+
+async def wormfareStart(thread: int, session_name: str, phone_number: str, proxy: [str, None]):
+    wormfare = await WormfareBot.create(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)
+    account = session_name + '.session'
+
+    await sleep(uniform(config.DELAYS['ACCOUNT'][0], config.DELAYS['ACCOUNT'][1]))
+
+    while True:
+        try:
+            
+            await wormfare.login()
+
+            await sleep(30)
+
+        except ContentTypeError as e:
+            logger.error(f"Wormfare | Thread {thread} | {account} | Error: {e}")
+            await asyncio.sleep(120)
+
+        except Exception as e:
+            logger.error(f"Wormfare | Thread {thread} | {account} | Error: {e}")
 
 async def vertusStats():
     accounts = await Accounts().get_accounts()

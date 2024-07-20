@@ -14,7 +14,7 @@ import httpx
 import time
 from pyrogram.raw.functions.messages import RequestWebView
 
-class MajorBot:
+class WormfareBot:
     def __init__(self, thread: int, session_name: str, phone_number: str, proxy: [str, None]):
         self.account = session_name + '.session'
         self.thread = thread
@@ -115,7 +115,7 @@ class MajorBot:
     async def get_stats(self, query):
         resp = await self.session.get("https://api.altooshka.io/user/", params=query)
         resp_json = await resp.json()
-        logger.info(f"Major | Thread {self.thread} | {self.account} | Balance: {resp_json["data"]["user"]["gems"]}")
+        logger.info(f"Wormfare | Thread {self.thread} | {self.account} | Balance: {resp_json["data"]["user"]["gems"]}")
         stats = await self.load_stats()
         
         balance = resp_json["data"]["user"]["gems"]
@@ -142,35 +142,12 @@ class MajorBot:
             json.dump(stats, f, indent=4)
 
 
-    async def make_cd_holder_task(self):
-        await self.client.connect()
-        web_view = await self.client.invoke(RequestWebView(
-                peer=await self.client.resolve_peer('cityholder'),
-                bot=await self.client.resolve_peer('cityholder'),
-                platform='ios',
-                from_bot_menu=False,
-                url='https://t.me/cityholder/app'
-            ))
-        await self.client.disconnect()
+    async def tg_join_task(self, mini_task):
+        if 'https://t.me/' in mini_task['url'] and not 'boost' in mini_task['url']:
 
-        auth_url = web_view.url
-        query = unquote(string=auth_url.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0])
-        
-        json_data = {
-            'auth': f'{query}'
-        }
-        # print('holder query ', query)
-        resp = await self.session.post('https://gp.city-holder.com/', json=json_data)
-        resp_json = resp.json()
-        # print('resp_json ', resp_json)
-
-    async def make_task(self, resp_json, headers):
-        for task in resp_json:
-            if 'https://t.me/' in task['payload']['url'] and not 'boost' in task['payload']['url']:
-
-                if 'startapp' in task['payload']['url']:
-                    bot_username = task['payload']['url'].split('/')[3]
-                    start_param = task['payload']['url'].split('/')[4].split('=')[1]
+                if 'startapp' in mini_task['url']:
+                    bot_username = mini_task['url'].split('/')[3]
+                    start_param = mini_task['url'].split('/')[4].split('=')[1]
 
                     await self.client.connect()
                     try:
@@ -186,105 +163,103 @@ class MajorBot:
                         print("e = ", e)   
                     await self.client.disconnect() 
 
-                    if 'cityholder' in task['payload']['url']:
+                    if 'cityholder' in mini_task['url']:
                         await self.make_cd_holder_task()
                 else:
                     await self.client.connect()
                     try:
-                        if '+' in task['payload']['url']:
-                            await self.client.join_chat(task['payload']['url'])
+                        if '+' in mini_task['url']:
+                            await self.client.join_chat(mini_task['url'])
                         else:
-                            await self.client.join_chat(task['payload']['url'].split('/')[3])
+                            await self.client.join_chat(mini_task['url'].split('/')[3])
                     except Exception as e:
                         print("e = ", e)
                     await self.client.disconnect()
                     
                 await asyncio.sleep(1)
-            # print('task =', task)
-            json_data = {
-                'task_id': task['id']
-            }
-            resp = await self.session.post('https://major.glados.app/api/tasks/', json=json_data, headers=headers)
-            resp_json = resp.json()
-            logger.info(f"Major | Thread {self.thread} | {self.account} | Try task {resp_json['task_id']}")
-            await asyncio.sleep(2)
+
+
+    async def make_task(self, resp_json):
+        try:
+            for task in resp_json:
+                if 'isCompleted' in task and task['isCompleted'] == True:
+                    continue
+                if task['isSimpleCheck'] == True:
+                    json_data = {
+                        'questId':task['id']
+                    }
+                    resp = await self.session.post('https://api.clicker.wormfare.com/quest/check-completion', json=json_data)
+                    resp = await self.session.post('https://api.clicker.wormfare.com/quest/claim-reward', json=json_data)
+                    complete = resp.json()
+                    if complete['success'] == True:
+                        logger.success(f"Wormfare | Thread {self.thread} | {self.account} | Quest complete {task['id']}")
+                    await asyncio.sleep(2)
+                else:
+                    if 'maxCompleteTimes' in task and 'completeTimes' in task and task['maxCompleteTimes'] <= task['completeTimes']:
+                        continue
+                    if task['type'] == 'complex':
+                        for mini_task in task['tasks']:
+                            try:
+                                await self.tg_join_task(mini_task)
+                                json_data = {
+                                    'questId':task['id'],
+                                    'taskId':mini_task['id']
+                                }
+                                resp = await self.session.post('https://api.clicker.wormfare.com/quest/check-completion', json=json_data)
+                                mini_task_json = resp.json()
+                                if mini_task_json['success'] == True:
+                                    logger.success(f"Wormfare | Thread {self.thread} | {self.account} | Task {mini_task['id']} in Quest {task['id']} complete")
+                                    await asyncio.sleep(3)
+                            except Exception as e:
+                                logger.error(f"Wormfare | Thread {self.thread} | {self.account} | error: {e}")
+                    json_data = {
+                        'questId':task['id']
+                    }
+                    resp = await self.session.post('https://api.clicker.wormfare.com/quest/check-completion', json=json_data)
+                    resp = await self.session.post('https://api.clicker.wormfare.com/quest/claim-reward', json=json_data)
+                    complete = resp.json()
+                    if complete['success'] == True:
+                        logger.success(f"Wormfare | Thread {self.thread} | {self.account} | Quest complete {task['id']}")
+                        await asyncio.sleep(2)
+        except Exception as e:
+            logger.error(f"Wormfare | Thread {self.thread} | {self.account} | error: {e}")
 
     async def login(self):
         query = await self.get_tg_web_data()
-        headers = {
-        'Host': 'major.glados.app',
-        'Pragma': 'no-cache',
-        'Cache-Control': 'no-cache',
-        'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
-        'Sec-Ch-Ua-Mobile': '0',
-        'Sec-Ch-Ua-Platform': '"Android"',
-        'Upgrade-Insecure-Requests': '0',
-        'Sec-Fetch-User': '0',
-        'Accept': 'application/json, text/plain, */*',
-        'Content-Type': 'application/json',
-        'Origin': 'https://major.glados.app',
-        'Sec-Fetch-Site': 'same-origin',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Dest': 'empty',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Priority': 'u=1, i'
-        }
+
         json_data = {
-            'init_data': query
+            'initData':query
         }
-        print(f'query {self.account} :', query)
-        await asyncio.sleep(2)
-        resp = await self.session.post('https://major.glados.app/api/auth/tg/', json=json_data, headers=headers)
-        resp_json = resp.json()
-        user_id = ''
-        if 'user' in resp_json and 'id' in resp_json['user']:
-            user_id = resp_json['user']['id']
-        logger.info(f"Major | Thread {self.thread} | {self.account} | Auth in app, {resp.status_code}")
-        self.session.headers.pop('Authorization', None)
-        self.session.headers['Authorization'] = "Bearer " + resp_json.get("access_token")
-
-        resp = await self.session.post('https://major.glados.app/api/user-visits/visit/?', headers=headers)
-        resp_json = resp.json()
-        await asyncio.sleep(3)
-
-        resp = await self.session.get("https://major.glados.app/api/tasks/?is_daily=true", headers=headers)
-        resp_json_daily = resp.json()
-        logger.info(f"Major | Thread {self.thread} | {self.account} | Daily tasks, {[task['title'] for task in resp_json_daily]}")
-        await asyncio.sleep(10)
-        await self.make_task(resp_json_daily, headers)
-
-        resp_json_daily = resp.json()
-        logger.info(f"Major | Thread {self.thread} | {self.account} | Repeat Daily tasks, {[task['title'] for task in resp_json_daily]}")
-        await asyncio.sleep(10)
-        await self.make_task(resp_json_daily, headers)
-
-        resp = await self.session.get("https://major.glados.app/api/tasks/?is_daily=false", headers=headers)
-        resp_json_not_daily = resp.json()
-        logger.info(f"Major | Thread {self.thread} | {self.account} | Not Daily tasks, {[task['title'] for task in resp_json_not_daily]}")
-        await asyncio.sleep(1)
-        await self.make_task(resp_json_not_daily, headers)
-
-        resp = await self.session.post("https://major.glados.app/api/roulette?", headers=headers)
-        resp_json_not_daily = resp.json()
-        logger.success(f"Major | Thread {self.thread} | {self.account} | Roulette done")
-        await asyncio.sleep(1)
-
         
+        resp = await self.session.post('https://api.clicker.wormfare.com/auth/login', json=json_data)
+        resp_json = resp.json()
+        self.session.headers.pop('Authorization', None)
+        self.session.headers['Authorization'] = "Bearer " + resp_json.get("accessToken")
+        resp = await self.session.get('https://api.clicker.wormfare.com/user/profile')
+        resp_json = resp.json()
 
-        try:
-            resp = await self.session.get(f'https://major.glados.app/api/users/{user_id}/', headers=headers)
-            resp_json = resp.json()
-            rating = resp_json['rating']
-            await asyncio.sleep(1)
-            resp = await self.session.get(f'https://major.glados.app/api/users/top/position/{user_id}/?', headers=headers)
-            resp_json = resp.json()
-            position = resp_json['position']
-            logger.success(f"Major | Thread {self.thread} | {self.account} | Rating: {rating}, Pos: {position}")
-        except Exception as e:
-            logger.error(f"Major | Thread {self.thread} | {self.account} | e = {e}")
+        await asyncio.sleep(2)
+
+        quests = await self.session.get('https://api.clicker.wormfare.com/quest')
+        quests_json = quests.json()
+        await self.make_task(quests_json)
+        await asyncio.sleep(5)
+        await self.make_task(quests_json)
+        json_data ={
+            'type':'accountAge'
+        }
+        resp = await self.session.post('https://api.clicker.wormfare.com/claim', json=json_data)
+        
+        json_data ={
+            'type':'Quests'
+        }
+        resp = await self.session.post('https://api.clicker.wormfare.com/claim', json=json_data)
+        await asyncio.sleep(2)
+        resp = await self.session.get('https://api.clicker.wormfare.com/user/profile')
+        resp_json = resp.json()
+        logger.info(f"Wormfare | Thread {self.thread} | {self.account} | jams {resp_json['jam']} ,score {resp_json['totalEarnedScore']}, rank {resp_json['rank']}")
         sleep_time = 60 * 60 * 12 + uniform(config.DELAYS['MAJOR_SLEEP'][0], config.DELAYS['MAJOR_SLEEP'][1])
-        logger.info(f"Major | Thread {self.thread} | {self.account} | Sleep {sleep_time}")
+        logger.info(f"Wormfare | Thread {self.thread} | {self.account} | Sleep {sleep_time}")
         for _ in range(int(sleep_time / 60)):
             await asyncio.sleep(60)
 
@@ -292,14 +267,14 @@ class MajorBot:
     async def get_tg_web_data(self):
         try:
             await self.client.connect()
-            bot_username = "major"
+            bot_username = "wormfare_slap_bot"
             bot = await self.client.get_users(bot_username)
             not_found = True
             # Пробуем получить чат по username бота
             try:
                 messages = self.client.get_chat_history(bot.id, limit=1)
                 async for message in messages:
-                    logger.info(f"Major | Thread {self.thread} | {self.account} | Button found")
+                    logger.info(f"Wormfare | Thread {self.thread} | {self.account} | Button found")
                 else:
                     not_found = False
             except Exception as e:
@@ -323,11 +298,11 @@ class MajorBot:
                     major_refs[good_ref_link]['current'] += 1
             
             await self.save_major_refs(major_refs)
-            # logger.info(f"Major | Thread {self.thread} | {self.account} | Loging under ref: {good_ref_link}")
+            # logger.info(f"Wormfare | Thread {self.thread} | {self.account} | Loging under ref: {good_ref_link}")
 
             web_view = await self.client.invoke(RequestAppWebView(
-                peer=await self.client.resolve_peer('major'),
-                app=InputBotAppShortName(bot_id=await self.client.resolve_peer('major'), short_name="start"),
+                peer=await self.client.resolve_peer('wormfare_slap_bot'),
+                app=InputBotAppShortName(bot_id=await self.client.resolve_peer('wormfare_slap_bot'), short_name="start"),
                 platform='ios',
                 write_allowed=True,
                 start_param=good_ref_link

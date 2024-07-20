@@ -1,6 +1,6 @@
 from utils.core import create_sessions
 from utils.telegram import Accounts
-from utils.starter import start, altooshkaStart, vertusStart, vertusStats, majorStart
+from utils.starter import start, altooshkaStart, vertusStart, vertusStats, majorStart, wormfareStart
 import asyncio
 import os
 import json
@@ -40,7 +40,7 @@ async def main():
 
     if action == 1:
 
-        selected_bots = input("Select bots (e. 1 2):\n1. Bull\n2. Altooshka\n3. Vertus\n4. Major\n\n> ")
+        selected_bots = input("Select bots (e. 1 2):\n1. Bull\n2. Altooshka\n3. Vertus\n4. Major\n5. Wormfare\n\n> ")
         accounts = await Accounts().get_accounts()
 
         tasks = []
@@ -54,6 +54,8 @@ async def main():
                 tasks.append(asyncio.create_task(vertusStart(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)))
             if "4" in selected_bots:
                 tasks.append(asyncio.create_task(majorStart(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)))
+            if "5" in selected_bots:
+                tasks.append(asyncio.create_task(wormfareStart(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)))
 
         await asyncio.gather(*tasks)
 
