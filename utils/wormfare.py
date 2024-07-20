@@ -249,7 +249,7 @@ class WormfareBot:
             'type':'accountAge'
         }
         resp = await self.session.post('https://api.clicker.wormfare.com/claim', json=json_data)
-        
+        await asyncio.sleep(2)
         json_data ={
             'type':'Quests'
         }
@@ -257,7 +257,23 @@ class WormfareBot:
         await asyncio.sleep(2)
         resp = await self.session.get('https://api.clicker.wormfare.com/user/profile')
         resp_json = resp.json()
-        logger.info(f"Wormfare | Thread {self.thread} | {self.account} | jams {resp_json['jam']} ,score {resp_json['totalEarnedScore']}, rank {resp_json['rank']}")
+        amount = int(resp_json['score'] / 4000000)
+        amount = 4000000 * amount
+        await asyncio.sleep(2)
+        # print('amount =', amount)
+        json_data ={
+            'spendAmount': amount,
+            'type':'Score'
+        }
+        resp = await self.session.post('https://api.clicker.wormfare.com/claim', json=json_data)
+        await asyncio.sleep(2)
+
+        resp = await self.session.get('https://api.clicker.wormfare.com/user/profile')
+        resp_json = resp.json()
+        
+
+        
+        logger.info(f"Wormfare | Thread {self.thread} | {self.account} | jams {resp_json['jam']} ,score {resp_json['score']}, rank {resp_json['rank']}")
         sleep_time = 60 * 60 * 12 + uniform(config.DELAYS['MAJOR_SLEEP'][0], config.DELAYS['MAJOR_SLEEP'][1])
         logger.info(f"Wormfare | Thread {self.thread} | {self.account} | Sleep {sleep_time}")
         for _ in range(int(sleep_time / 60)):
